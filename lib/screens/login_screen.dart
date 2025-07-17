@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
+import '../widgets/ban_dialog.dart';
 import 'register_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -47,6 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
+          if (result['banli'] == true) {
+            // Banlı kullanıcıya özel modern dialog
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return ModernBanDialog(
+                  banInfo: result,
+                  onConfirm: () => Navigator.of(context).pop(),
+                  showCountdown: false,
+                );
+              },
+            );
+          } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message']),
@@ -55,6 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
+          }
         }
       }
     } catch (e) {

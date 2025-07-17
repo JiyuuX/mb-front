@@ -6,6 +6,7 @@ import '../models/user.dart';
 import 'thread_detail_screen.dart';
 import 'profile_screen.dart';
 import 'dart:convert';
+import '../utils/app_theme.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -16,9 +17,24 @@ class ForumScreen extends StatefulWidget {
 
 class _ForumScreenState extends State<ForumScreen> {
   List<Thread> _threads = [];
+  List<dynamic> _hotTopics = [];
+  bool _hotLoading = true;
   User? _user;
   bool _isLoading = true;
   bool _isPremium = false;
+  String selectedCategory = 'genel';
+  final List<Map<String, String>> categories = [
+    {'value': 'genel', 'label': 'Genel'},
+    {'value': 'muzik', 'label': 'Müzik'},
+    {'value': 'oyun', 'label': 'Oyun'},
+    {'value': 'film', 'label': 'Film'},
+    {'value': 'spor', 'label': 'Spor'},
+    {'value': 'teknoloji', 'label': 'Teknoloji'},
+    {'value': 'espor', 'label': 'Espor'},
+    {'value': 'finans', 'label': 'Finans&Kripto'},
+    {'value': 'bilim', 'label': 'Bilim'},
+    {'value': 'diger', 'label': 'Diğer'},
+  ];
 
   @override
   void initState() {
@@ -26,6 +42,20 @@ class _ForumScreenState extends State<ForumScreen> {
     _loadThreads();
     _checkPremiumStatus();
     _loadUserProfile();
+    _loadHotTopics();
+  }
+
+  Future<void> _loadHotTopics() async {
+    setState(() { _hotLoading = true; });
+    final result = await ForumService.getHotTopics();
+    if (result['success']) {
+      setState(() {
+        _hotTopics = result['hotTopics'];
+        _hotLoading = false;
+      });
+    } else {
+      setState(() { _hotLoading = false; });
+    }
   }
 
   Future<void> _loadThreads() async {
@@ -106,104 +136,220 @@ class _ForumScreenState extends State<ForumScreen> {
     }
 
     final titleController = TextEditingController();
+    String selectedCategory = 'genel';
+    final categories = [
+      {'value': 'genel', 'label': 'Genel'},
+      {'value': 'muzik', 'label': 'Müzik'},
+      {'value': 'oyun', 'label': 'Oyun'},
+      {'value': 'film', 'label': 'Film'},
+      {'value': 'spor', 'label': 'Spor'},
+      {'value': 'teknoloji', 'label': 'Teknoloji'},
+      {'value': 'espor', 'label': 'Espor'},
+      {'value': 'bilim', 'label': 'Bilim'},
+      {'value': 'diger', 'label': 'Diğer'},
+    ];
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Yeni Thread Oluştur'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Thread Başlığı',
-                border: OutlineInputBorder(),
-                hintText: 'Thread başlığını girin...',
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final borderColor = Theme.of(context).colorScheme.outline;
+          final bgColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final onPrimary = Theme.of(context).colorScheme.onPrimary;
+          final inputFill = isDark ? AppTheme.darkInput : AppTheme.lightInput;
+          final inputBorder = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+          final destructive = isDark ? AppTheme.darkDestructive : AppTheme.lightDestructive;
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: bgColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Navbar-style başlık ve kapatma
+                  Row(
+            children: [
+                      const Text(
+                        'Yeni Thread Oluştur',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // shadcn-style geniş input
+              TextField(
+                controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Thread başlığını girin...'
+                          ,
+                      filled: true,
+                      fillColor: inputFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                ),
+                maxLines: 2,
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
               ),
-              maxLines: 2,
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                    decoration: InputDecoration(
+                  labelText: 'Kategori',
+                      filled: true,
+                      fillColor: inputFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                items: categories
+                    .map((cat) => DropdownMenuItem<String>(
+                          value: cat['value'],
+                          child: Text(cat['label']!),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  setState(() {
+                    selectedCategory = val!;
+                  });
+                },
+              ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: destructive,
+                            side: BorderSide(color: destructive, width: 1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('İptal'),
+            ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+              onPressed: () async {
+                if (titleController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Thread başlığı gereklidir.'),
+                                  backgroundColor: destructive,
+                    ),
+                  );
+                  return;
+                }
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                Navigator.of(context).pop();
+                setState(() {
+                  _isLoading = true;
+                });
+                final result = await ForumService.createThread(
+                  titleController.text.trim(),
+                  selectedCategory,
+                );
+                if (result['success']) {
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(result['message']),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    await _loadThreads();
+                  }
+                } else {
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(result['message']),
+                                    backgroundColor: destructive,
+                      ),
+                    );
+                    setState(() {
+                      _isLoading = false;
+                    });
+                  }
+                }
+              },
+                          child: const Text('Oluştur', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Thread başlığı gereklidir.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              // ScaffoldMessenger referansını önceden al
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-              
-              Navigator.of(context).pop();
-              
-              // Loading göster
-              setState(() {
-                _isLoading = true;
-              });
-              
-              final result = await ForumService.createThread(titleController.text.trim());
-              print('Thread creation result: $result'); // Debug için
-              if (result['success']) {
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(result['message']),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  // Thread listesini yeniden yükle (en güvenli yöntem)
-                  await _loadThreads();
-                }
-              } else {
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(result['message']),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  setState(() {
-                    _isLoading = false;
-                  });
-                }
-              }
-            },
-            child: const Text('Oluştur'),
-          ),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Forum'),
-        backgroundColor: const Color(0xFF667eea),
-        foregroundColor: Colors.white,
+        title: Text('Forum', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: isDark ? Colors.black : Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: isDark ? Colors.black : Colors.white),
         actions: [
           IconButton(
             onPressed: _showCreateThreadDialog,
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, color: isDark ? Colors.black : Colors.white),
           ),
           GestureDetector(
             onTap: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const ProfileScreen()),
               );
-              // Profil sayfasından döndüğünde kullanıcı bilgilerini yeniden yükle
               _loadUserProfile();
             },
             child: Container(
@@ -212,7 +358,7 @@ class _ForumScreenState extends State<ForumScreen> {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
               ),
               child: _user?.profilePicture != null
                   ? ClipOval(
@@ -222,17 +368,17 @@ class _ForumScreenState extends State<ForumScreen> {
                         height: 32,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
+                          return Icon(
                             Icons.person,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.primary,
                             size: 20,
                           );
                         },
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.person,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
             ),
@@ -241,64 +387,214 @@ class _ForumScreenState extends State<ForumScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
+          : Column(
+              children: [
+                // Kategori barı
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 8,
+                    children: categories.map((cat) {
+                      final isSelected = selectedCategory == cat['value'];
+                      return ChoiceChip(
+                        label: Text(cat['label']!, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        selected: isSelected,
+                        onSelected: (_) {
+                          setState(() {
+                            selectedCategory = cat['value']!;
+                          });
+                        },
+                        selectedColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.onPrimary
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.outline,
+                            width: 1.5,
+                          ),
+                        ),
+                        elevation: 0,
+                      );
+                    }).toList(),
+                  ),
+                ),
+                // Hot Topics Bölgesi
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.local_fire_department, color: Colors.orange, size: 22),
+                          const SizedBox(width: 8),
+                          Text('Şu anda trend', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.primary)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _hotLoading
+                          ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                          : _hotTopics.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text('Şu anda trend konu yok.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                )
+                              : Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: _hotTopics.map<Widget>((hot) {
+                                    final thread = Thread.fromJson(hot['thread']);
+                                    final likeCount = hot['like_count'] ?? 0;
+                                    final commentCount = hot['comment_count'] ?? 0;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => ThreadDetailScreen(thread: thread),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        width: 260,
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.surface,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Theme.of(context).colorScheme.outline, width: 1),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.03),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    thread.title,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Theme.of(context).colorScheme.primary),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.favorite, size: 16, color: Colors.red.withOpacity(0.8)),
+                                                const SizedBox(width: 4),
+                                                Text(likeCount.toString(), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary)),
+                                                const SizedBox(width: 12),
+                                                Icon(Icons.comment, size: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                                                const SizedBox(width: 4),
+                                                Text(commentCount.toString(), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
               onRefresh: _loadThreads,
               child: _threads.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.forum,
-                            size: 80,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Henüz thread bulunmuyor',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'İlk thread\'i sen oluştur!',
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
-                          ),
+                          Icon(Icons.forum, size: 64, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                          const SizedBox(height: 16),
+                          Text('Henüz thread yok', style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _threads.length,
+                      padding: const EdgeInsets.all(20),
+                            itemCount: _threads.where((t) => selectedCategory == 'genel' ? true : t.category == selectedCategory).length,
                       itemBuilder: (context, index) {
-                        final thread = _threads[index];
+                              final filteredThreads = _threads.where((t) => selectedCategory == 'genel' ? true : t.category == selectedCategory).toList();
+                              final thread = filteredThreads[index];
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1),
                           ),
+                          margin: const EdgeInsets.only(bottom: 18),
+                          color: Theme.of(context).colorScheme.surface,
                           child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ThreadDetailScreen(thread: thread),
+                                ),
+                              );
+                            },
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                              backgroundImage: thread.creator['profile_picture'] != null
+                                  ? NetworkImage(thread.creator['profile_picture'])
+                                  : null,
+                              child: thread.creator['profile_picture'] == null
+                                  ? Text(
+                                      (thread.creator['username'] ?? 'A')[0].toUpperCase(),
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
+                            ),
                             title: Row(
                               children: [
                                 Expanded(
                                   child: Text(
                                     thread.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ),
-                                if (thread.isPinned)
-                                  const Icon(
-                                    Icons.push_pin,
-                                    color: Colors.orange,
-                                    size: 20,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
+                                  child: Text(
+                                    _categoryLabel(thread.category),
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                             subtitle: Column(
@@ -307,93 +603,97 @@ class _ForumScreenState extends State<ForumScreen> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 12,
-                                      backgroundColor: Colors.grey[300],
-                                      backgroundImage: thread.creator['profile_picture'] != null
-                                          ? NetworkImage(thread.creator['profile_picture'])
-                                          : null,
-                                      child: thread.creator['profile_picture'] == null
-                                          ? Text(
-                                              (thread.creator['username'] ?? 'A')[0].toUpperCase(),
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    const SizedBox(width: 8),
+                                    Icon(Icons.person, size: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      thread.creator['username'] ?? 'Anonim',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                        fontWeight: thread.creator['is_premium'] == true 
-                                            ? FontWeight.bold 
-                                            : FontWeight.normal,
-                                      ),
+                                      thread.creator['username'] ?? '-',
+                                      style: TextStyle(color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
                                     ),
-                                    if (thread.creator['is_premium'] == true) ...[
-                                      const SizedBox(width: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          'PREMIUM',
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
+                                    const Spacer(),
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(16),
+                                      onTap: () async {
+                                        final result = await ForumService.toggleThreadLike(thread.id);
+                                        if (result['success']) {
+                                          setState(() {
+                                                  final idx = _threads.indexWhere((t) => t.id == thread.id);
+                                                  if (idx != -1) {
+                                                    _threads[idx] = Thread(
+                                              id: thread.id,
+                                              title: thread.title,
+                                              creator: thread.creator,
+                                              createdAt: thread.createdAt,
+                                              updatedAt: thread.updatedAt,
+                                              isPinned: thread.isPinned,
+                                              isLocked: thread.isLocked,
+                                              category: thread.category,
+                                              likesCount: result['likes_count'],
+                                              isLiked: result['liked'],
+                                            );
+                                                  }
+                                          });
+                                        }
+                                      },
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            thread.isLiked ? Icons.favorite : Icons.favorite_border,
+                                            color: thread.isLiked ? Colors.red : Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                            size: 18,
                                           ),
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(width: 16),
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDate(thread.createdAt),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            thread.likesCount.toString(),
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => ThreadDetailScreen(thread: thread),
-                                ),
-                              );
-                            },
+                            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
                           ),
                         );
                       },
                     ),
+                  ),
+                ),
+              ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateThreadDialog,
-        backgroundColor: const Color(0xFF667eea),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _categoryLabel(String value) {
+    switch (value) {
+      case 'muzik':
+        return 'Müzik';
+      case 'oyun':
+        return 'Oyun';
+      case 'film':
+        return 'Film';
+      case 'spor':
+        return 'Spor';
+      case 'teknoloji':
+        return 'Teknoloji';
+      case 'espor':
+        return 'Espor';
+      case 'finans':
+        return 'Finans&Kripto';
+      case 'bilim':
+        return 'Bilim';
+      case 'diger':
+        return 'Diğer';
+      default:
+        return 'Genel';
+    }
   }
 } 

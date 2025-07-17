@@ -4,6 +4,8 @@ class Advertisement {
   final String description;
   final String companyName;
   final String? gifUrl;
+  final String? imageUrl;
+  final String? videoUrl;
   final String? linkUrl;
   final int priority;
 
@@ -13,6 +15,8 @@ class Advertisement {
     required this.description,
     required this.companyName,
     this.gifUrl,
+    this.imageUrl,
+    this.videoUrl,
     this.linkUrl,
     required this.priority,
   });
@@ -24,6 +28,8 @@ class Advertisement {
       description: json['description'],
       companyName: json['company_name'],
       gifUrl: json['gif_url'],
+      imageUrl: json['image_file'],
+      videoUrl: json['video_file'],
       linkUrl: json['link_url'],
       priority: json['priority'],
     );
@@ -36,6 +42,8 @@ class Advertisement {
       'description': description,
       'company_name': companyName,
       'gif_url': gifUrl,
+      'image_file': imageUrl,
+      'video_file': videoUrl,
       'link_url': linkUrl,
       'priority': priority,
     };

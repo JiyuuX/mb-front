@@ -1,0 +1,117 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import '../models/message.dart';
+import '../models/user.dart';
+import '../services/api_service.dart';
+import 'chat_screen.dart';
+
+class ChatListScreen extends StatefulWidget {
+  const ChatListScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends State<ChatListScreen> {
+  List<Conversation> _conversations = [];
+  bool _isLoading = true;
+  int? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final response = await ApiService.get('/users/profile/');
+      if (response.statusCode == 200) {
+        final data = Map<String, dynamic>.from(await Future.value(
+            response.body is String ? jsonDecode(response.body) : response.body));
+        setState(() {
+          _currentUserId = data['id'];
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+    _loadConversations();
+  }
+
+  Future<void> _loadConversations() async {
+    setState(() { _isLoading = true; });
+    try {
+      final data = await ApiService.getUserConversations();
+      setState(() {
+        _conversations = data.map((e) => Conversation.fromJson(e)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() { _isLoading = false; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sohbetler yüklenemedi: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sohbetler')),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _conversations.isEmpty
+              ? const Center(child: Text('Sohbet bulunamadı'))
+              : ListView.separated(
+                  itemCount: _conversations.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final conv = _conversations[index];
+                    // Find the other user (not the current user)
+                    final otherUser = conv.participants.firstWhere(
+                      (u) => u.id != _currentUserId,
+                      orElse: () => conv.participants.first,
+                    );
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: otherUser.profilePicture != null ? NetworkImage(otherUser.profilePicture!) : null,
+                        child: otherUser.profilePicture == null ? const Icon(Icons.person) : null,
+                      ),
+                      title: Text(otherUser.fullName),
+                      subtitle: conv.lastMessage != null
+                          ? Text(
+                              conv.lastMessage!.text ?? '[Medya]',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : const Text('Henüz mesaj yok'),
+                      trailing: (conv.unreadCount ?? 0) > 0
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                conv.unreadCount.toString(),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            )
+                          : null,
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ChatScreen(otherUser: otherUser),
+                          ),
+                        );
+                        _loadConversations();
+                      },
+                    );
+                  },
+                ),
+    );
+  }
+} 

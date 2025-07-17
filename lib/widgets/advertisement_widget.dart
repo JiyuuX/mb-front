@@ -4,6 +4,7 @@ import 'package:glassmorphism/glassmorphism.dart';
 import '../models/advertisement.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
+import 'package:video_player/video_player.dart';
 
 class AdvertisementWidget extends StatefulWidget {
   final double height;
@@ -27,6 +28,7 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
   int _currentAdIndex = 0;
   late AnimationController _fadeController;
   bool _isLoading = true;
+  VideoPlayerController? _videoController;
 
   @override
   void initState() {
@@ -36,6 +38,13 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
       vsync: this,
     );
     _loadAds();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _videoController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAds() async {
@@ -51,6 +60,7 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
             _isLoading = false;
           });
           if (_ads.isNotEmpty) {
+            _prepareMedia(_ads[0]);
             _startAdRotation();
           }
         }
@@ -62,21 +72,53 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
     }
   }
 
+  Future<void> _prepareMedia(Advertisement ad) async {
+    _videoController?.dispose();
+    _videoController = null;
+    if (ad.videoUrl != null && ad.videoUrl!.isNotEmpty) {
+      _videoController = VideoPlayerController.network(ad.videoUrl!);
+      await _videoController!.initialize();
+      _videoController!.setLooping(false); // Videonun bitmesini bekleyeceğiz
+      _videoController!.setVolume(0.0); // Sesi kapalı başlat
+      _videoController!.play();
+      setState(() {});
+      _videoController!.addListener(_onVideoEnd);
+    }
+  }
+
+  void _onVideoEnd() {
+    if (_videoController != null && _videoController!.value.position >= _videoController!.value.duration && !_videoController!.value.isPlaying) {
+      _videoController!.removeListener(_onVideoEnd);
+      _rotateToNextAd();
+    }
+  }
+
   void _startAdRotation() {
     if (_ads.length > 1) {
-      Future.delayed(const Duration(seconds: 8), () {
-        if (mounted) {
-          _fadeController.forward().then((_) {
-            setState(() {
-              _currentAdIndex = (_currentAdIndex + 1) % _ads.length;
-            });
-            _fadeController.reverse().then((_) {
-              _startAdRotation();
-            });
-          });
-        }
-      });
+      final currentAd = _ads[_currentAdIndex];
+      if (currentAd.videoUrl != null && currentAd.videoUrl!.isNotEmpty && _videoController != null) {
+        // Video ise, bitince _onVideoEnd ile geçiş yapılacak
+        // Hiçbir şey yapma, listener tetiklenecek
+      } else {
+        Future.delayed(const Duration(seconds: 8), () async {
+          if (mounted) {
+            _rotateToNextAd();
+          }
+        });
+      }
     }
+  }
+
+  void _rotateToNextAd() async {
+    _fadeController.forward().then((_) async {
+      setState(() {
+        _currentAdIndex = (_currentAdIndex + 1) % _ads.length;
+      });
+      await _prepareMedia(_ads[_currentAdIndex]);
+      _fadeController.reverse().then((_) {
+        _startAdRotation();
+      });
+    });
   }
 
   Future<void> _handleAdClick(Advertisement ad) async {
@@ -95,12 +137,6 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
   }
 
   @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const SizedBox.shrink();
@@ -112,8 +148,40 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
 
     final currentAd = _ads[_currentAdIndex];
 
-    // Eğer GIF yoksa hiçbir şey gösterme
-    if (currentAd.gifUrl == null || currentAd.gifUrl!.isEmpty) {
+    // Medya önceliği: video > image > gif
+    Widget? mediaWidget;
+    if (currentAd.videoUrl != null && currentAd.videoUrl!.isNotEmpty && _videoController != null && _videoController!.value.isInitialized) {
+      mediaWidget = AspectRatio(
+        aspectRatio: _videoController!.value.aspectRatio,
+        child: VideoPlayer(_videoController!),
+      );
+    } else if (currentAd.imageUrl != null && currentAd.imageUrl!.isNotEmpty) {
+      mediaWidget = Image.network(
+        currentAd.imageUrl!,
+        fit: BoxFit.cover,
+        width: 300,
+        height: 300,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const SizedBox.shrink();
+        },
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+      );
+    } else if (currentAd.gifUrl != null && currentAd.gifUrl!.isNotEmpty) {
+      mediaWidget = Image.network(
+        currentAd.gifUrl!,
+        fit: BoxFit.cover,
+        width: 300,
+        height: 300,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const SizedBox.shrink();
+        },
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+      );
+    }
+
+    if (mediaWidget == null) {
       return const SizedBox.shrink();
     }
 
@@ -124,23 +192,9 @@ class _AdvertisementWidgetState extends State<AdvertisementWidget>
       child: GestureDetector(
         onTap: () => _handleAdClick(currentAd),
         child: Center(
-          child: Container(
-            width: 300,
-            height: 300,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              currentAd.gifUrl!,
-                              fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const SizedBox.shrink();
-                },
-                              errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox.shrink();
-                              },
-                            ),
-                          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: mediaWidget,
           ),
         ),
       ),

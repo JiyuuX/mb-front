@@ -81,6 +81,18 @@ class AuthService {
         };
       } else {
         final data = json.decode(response.body);
+        // Ban response'u dict ise ve içinde 'banli' anahtarı varsa
+        if (data is Map && data.containsKey('banli') && data['banli'] == true) {
+          return {
+            'success': false,
+            'banli': true,
+            'ban_sebebi': data['ban_sebebi'],
+            'ban_suresiz': data['ban_suresiz'],
+            'ban_bitis': data['ban_bitis'],
+            'kalan_sure': data['kalan_sure'],
+            'message': data['mesaj'] ?? 'Hesabınız banlanmıştır.'
+          };
+        }
         return {
           'success': false,
           'message': data.toString(),

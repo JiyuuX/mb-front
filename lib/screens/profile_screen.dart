@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'followers_following_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -316,6 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
@@ -341,6 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             },
           ),
         ],
+        iconTheme: IconThemeData(color: isDark ? Colors.black : Colors.white),
       ),
       body: _isLoading
           ? Center(
@@ -370,8 +373,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             child: Column(
                               children: [
                                 _buildProfileHeader(),
+                                const SizedBox(height: 16),
+                                _buildStatsRow(),
                                 const SizedBox(height: 24),
                                 _buildUserInfoCard(),
+                                _buildSocialMediaCard(),
                                 const SizedBox(height: 16),
                                 if (!_user!.isPremium) _buildPremiumCard(),
                                 const SizedBox(height: 16),
@@ -387,7 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-    Widget _buildProfileHeader() {
+  Widget _buildProfileHeader() {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -485,6 +491,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ),
               const SizedBox(height: 8),
+              if (_user!.isSecondhandSeller)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.verified, color: Colors.orange, size: 20),
+                    const SizedBox(width: 6),
+                    Text('2. El Satıcı', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               Text(
                 _user!.email,
                 style: GoogleFonts.inter(
@@ -494,47 +509,107 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.star,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'PREMIUM',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+              if (_user!.isPremium)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.star,
+                        size: 16,
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        'PREMIUM',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildStatsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildStatItem('Takipçi', _user!.followersCount, onTap: () => _openFollowersFollowingList(true)),
+        _buildStatItem('Takip', _user!.followingCount, onTap: () => _openFollowersFollowingList(false)),
+        _buildStatItem('Thread', _user!.threadCount ?? 0, onTap: _openUserThreadsList),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(String label, int value, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value.toString(),
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openFollowersFollowingList(bool showFollowers) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FollowersFollowingListScreen(
+          username: _user!.username,
+          showFollowers: showFollowers,
+        ),
+      ),
+    );
+  }
+
+  void _openUserThreadsList() {
+    // TODO: Implement user threads list screen navigation
   }
 
   Widget _buildUserInfoCard() {
@@ -549,11 +624,11 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             offset: const Offset(0, 5),
           ),
         ],
-                        ),
-                        child: Padding(
+      ),
+      child: Padding(
         padding: const EdgeInsets.all(20),
-                          child: Column(
-                            children: [
+        child: Column(
+          children: [
             _buildModernInfoRow('E-posta', _user!.email, Icons.email, Colors.blue),
             const SizedBox(height: 16),
             _buildModernInfoRow('Telefon', _user!.phoneNumber ?? 'Belirtilmemiş', Icons.phone, Colors.green),
@@ -562,9 +637,99 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             const SizedBox(height: 16),
             _buildModernInfoRow(
               'Üyelik Tarihi',
-              '${_user!.dateJoined.day}/${_user!.dateJoined.month}/${_user!.dateJoined.year}',
+              '${_user!.createdAt.day}/${_user!.createdAt.month}/${_user!.createdAt.year}',
               Icons.calendar_today,
               Theme.of(context).colorScheme.secondary,
+            ),
+            // Takipçi ve Takip info row'ları kaldırıldı
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialMediaCard() {
+    final hasSocialMedia = _user!.instagram != null || 
+                          _user!.twitter != null || 
+                          _user!.facebook != null || 
+                          _user!.linkedin != null || 
+                          _user!.website != null;
+    
+    if (!hasSocialMedia) return const SizedBox.shrink();
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sosyal Medya',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                if (_user!.instagram != null)
+                  _buildSocialLink('Instagram', Icons.camera_alt, Colors.purple, _user!.instagram!),
+                if (_user!.twitter != null)
+                  _buildSocialLink('Twitter', Icons.flutter_dash, Colors.blue, _user!.twitter!),
+                if (_user!.facebook != null)
+                  _buildSocialLink('Facebook', Icons.facebook, Colors.blue, _user!.facebook!),
+                if (_user!.linkedin != null)
+                  _buildSocialLink('LinkedIn', Icons.work, Colors.blue, _user!.linkedin!),
+                if (_user!.website != null)
+                  _buildSocialLink('Website', Icons.language, Colors.green, _user!.website!),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialLink(String label, IconData icon, Color color, String url) {
+    return InkWell(
+      onTap: () {
+        // TODO: Implement URL opening
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
             ),
                             ],
                           ),
@@ -678,25 +843,26 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _activatePremium,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                  foregroundColor: Colors.orange,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
+              if (!_user!.isPremium)
+                ElevatedButton(
+                  onPressed: _activatePremium,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                    foregroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Premium Ol',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  child: Text(
+                    'Premium Ol',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

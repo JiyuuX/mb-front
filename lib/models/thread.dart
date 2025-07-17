@@ -6,6 +6,9 @@ class Thread {
   final DateTime updatedAt;
   final bool isPinned;
   final bool isLocked;
+  final String category;
+  final int likesCount;
+  final bool isLiked;
 
   Thread({
     required this.id,
@@ -15,6 +18,9 @@ class Thread {
     required this.updatedAt,
     required this.isPinned,
     required this.isLocked,
+    required this.category,
+    required this.likesCount,
+    required this.isLiked,
   });
 
   factory Thread.fromJson(Map<String, dynamic> json) {
@@ -26,6 +32,9 @@ class Thread {
       updatedAt: DateTime.parse(json['updated_at']),
       isPinned: json['is_pinned'] ?? false,
       isLocked: json['is_locked'] ?? false,
+      category: json['category'] ?? 'genel',
+      likesCount: json['likes_count'] ?? 0,
+      isLiked: json['is_liked'] ?? false,
     );
   }
 
@@ -38,6 +47,9 @@ class Thread {
       'updated_at': updatedAt.toIso8601String(),
       'is_pinned': isPinned,
       'is_locked': isLocked,
+      'category': category,
+      'likes_count': likesCount,
+      'is_liked': isLiked,
     };
   }
 } 

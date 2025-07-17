@@ -7,6 +7,10 @@ import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'providers/theme_provider.dart';
 import 'utils/app_theme.dart';
+import 'services/api_service.dart';
+import 'widgets/ban_dialog.dart';
+import 'dart:async';
+import 'dart:convert';
 
 void main() {
   runApp(const HPGencApp());
@@ -45,12 +49,34 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isLoggedIn = false;
+  Map<String, dynamic>? _banInfo;
+  int _banCountdown = 5;
+  bool _banDialogOpen = false;
+  Timer? _banCheckTimer; // Artık kullanılmıyor
 
   @override
   void initState() {
     super.initState();
+    ApiService.onBanDetected = (banInfo) {
+      if (_banDialogOpen) return;
+      setState(() {
+        _isLoggedIn = false;
+        _banInfo = banInfo;
+        _banCountdown = 5;
+        _banDialogOpen = true;
+      });
+      _showBanDialogWithCountdown();
+    };
     _checkAuthStatus();
   }
+
+  @override
+  void dispose() {
+    _banCheckTimer?.cancel(); // Artık kullanılmıyor
+    super.dispose();
+  }
+
+  // void _startBanCheckTimer() { ... } // Tamamen kaldırıldı
 
   Future<void> _checkAuthStatus() async {
     try {
@@ -59,11 +85,73 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _isLoggedIn = isLoggedIn;
         _isLoading = false;
       });
+      // if (isLoggedIn) {
+      //   _startBanCheckTimer();
+      // } else {
+      //   _banCheckTimer?.cancel();
+      // }
     } catch (e) {
-    setState(() {
+      setState(() {
         _isLoggedIn = false;
         _isLoading = false;
+      });
+      // _banCheckTimer?.cancel();
+    }
+  }
+
+  void _showBanDialogWithCountdown() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            // Geri sayım timer'ı başlat
+            Future.delayed(const Duration(seconds: 1), () {
+              if (_banCountdown > 0 && _banDialogOpen) {
+                setStateDialog(() {
+                  _banCountdown--;
+                });
+                if (_banCountdown == 0) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  _forceLogout();
+                } else {
+                  _showBanDialogWithCountdown();
+                }
+              }
+            });
+            return ModernBanDialog(
+              banInfo: _banInfo ?? {},
+              countdown: _banCountdown,
+              onConfirm: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                _forceLogout();
+              },
+            );
+          },
+        );
+      },
+    ).then((_) {
+      setState(() {
+        _banDialogOpen = false;
+      });
     });
+  }
+
+  void _forceLogout() async {
+    await AuthService.logout();
+    _banCheckTimer?.cancel();
+    setState(() {
+      _isLoggedIn = false;
+      _banInfo = null;
+      _banCountdown = 5;
+      _banDialogOpen = false;
+    });
+    // Direkt login sayfasına yönlendir
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
@@ -109,6 +197,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ),
         ),
       );
+    }
+
+    if (_banInfo != null) {
+      // Banlı kullanıcı login ekranına yönlendirilir
+      return const LoginScreen();
     }
 
     return _isLoggedIn ? const DashboardScreen() : const LoginScreen();

@@ -5,13 +5,24 @@ import '../models/event.dart';
 import '../models/announcement.dart';
 import '../models/user.dart';
 import '../models/news.dart';
+import '../models/message.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/news_ticker.dart';
 import '../widgets/advertisement_widget.dart';
 import '../widgets/theme_switch.dart';
+import '../widgets/ban_dialog.dart';
 import 'profile_screen.dart';
 import 'forum_screen.dart';
+import 'login_screen.dart';
 import 'dart:convert';
+import 'product_list_screen.dart';
+import 'product_category_screen.dart';
+import 'my_store_screen.dart';
+import 'favorites_screen.dart';
+import 'events_screen.dart';
+import 'tickets_screen.dart';
+import 'chat_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -28,6 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   int _currentIndex = 0;
   bool _newsEnabled = true;
+  int _unreadConversations = 0;
 
   @override
   void initState() {
@@ -35,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadDashboardData();
     _loadUserProfile();
     _loadNews();
+    _loadUnreadConversations();
   }
 
   Future<void> _loadDashboardData() async {
@@ -105,8 +118,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _loadUnreadConversations() async {
+    try {
+      final data = await ApiService.getUserConversations();
+      final conversations = data.map((e) => Conversation.fromJson(e)).toList();
+      setState(() {
+        _unreadConversations = conversations.where((c) => (c.unreadCount ?? 0) > 0).length;
+      });
+    } catch (e) {
+      setState(() {
+        _unreadConversations = 0;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_user != null && _user!.isBanned) {
+      // Show modern ban dialog
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return ModernBanDialog(
+              banInfo: {
+                'mesaj': 'Hesabınız banlanmıştır.',
+                'ban_sebebi': _user!.banReason,
+                'ban_bitis': _user!.banUntil?.toString(),
+                'ban_suresiz': _user!.banUntil == null,
+              },
+              onConfirm: () async {
+                Navigator.of(context).pop();
+                await AuthService.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                }
+              },
+              showCountdown: false,
+            );
+          },
+        );
+      });
+      
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.block, size: 64, color: Theme.of(context).colorScheme.error),
+              const SizedBox(height: 24),
+              Text('Hesabınız banlanmıştır.',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text('Platforma erişiminiz kısıtlanmıştır.', textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -160,6 +235,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.only(right: 8),
                           child: ThemeModeSelector(),
                         ),
+                        Stack(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.chat),
+                              onPressed: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (context) => const ChatListScreen()),
+                                );
+                                _loadUnreadConversations();
+                              },
+                            ),
+                            if (_unreadConversations > 0)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                                  child: Center(
+                                    child: Text(
+                                      _unreadConversations.toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                         GestureDetector(
                           onTap: () async {
                             await Navigator.of(context).push(
@@ -169,27 +276,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           },
                           child: Container(
                             margin: const EdgeInsets.all(8),
-                            width: 40,
-                            height: 40,
+                            width: 56,
+                            height: 56,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.outline,
-                                width: 1,
+                                width: 1.5,
                               ),
                             ),
                             child: _user?.profilePicture != null
                                 ? ClipOval(
                                     child: Image.network(
                                       _user!.profilePicture!,
-                                      width: 40,
-                                      height: 40,
+                                      width: 56,
+                                      height: 56,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) {
                                         return Icon(
                                           Icons.person,
                                           color: Theme.of(context).colorScheme.primary,
+                                          size: 32,
                                         );
                                       },
                                     ),
@@ -197,6 +305,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 : Icon(
                                     Icons.person,
                                     color: Theme.of(context).colorScheme.primary,
+                                    size: 32,
                                   ),
                           ),
                         ).animate().scale(duration: 300.ms),
@@ -208,6 +317,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.all(16),
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
+                          // Reklam en üstte
+                          AdvertisementWidget(
+                            height: 120,
+                          ).animate().fadeIn(delay: 200.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8)),
+                          const SizedBox(height: 16),
+                          
                           // Haber Ticker
                           Container(
                             margin: const EdgeInsets.only(bottom: 8),
@@ -226,8 +341,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.3),
                           const SizedBox(height: 24),
 
+                          // Ana Özellikler Grid
+                          Text(
+                            'Ana Özellikler',
+                            style: GoogleFonts.inter(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                          const SizedBox(height: 16),
+                          
+                          // 2x2 Grid Layout
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 1.2,
+                            children: [
+                              // 2. El Kıyafetler
+                              _buildFeatureCard(
+                                icon: Icons.shopping_bag,
+                                title: '2. El\nKıyafetler',
+                                subtitle: 'Alışveriş',
+                                color: const Color(0xFF667eea),
+                                onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => const ProductCategoryScreen()),
+                              );
+                            },
+                                delay: 600,
+                              ),
+                              
+                              // Mağazam
+                              _buildFeatureCard(
+                                icon: Icons.store,
+                                title: 'Mağazam',
+                                subtitle: 'Satış',
+                                color: Colors.orange,
+                                onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => const MyStoreScreen()),
+                              );
+                            },
+                                delay: 700,
+                              ),
+                              
+                              // Favorilerim
+                              _buildFeatureCard(
+                                icon: Icons.favorite,
+                                title: 'Favorilerim',
+                                subtitle: 'Beğenilenler',
+                                color: Colors.red,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (context) => const FavoritesScreen()),
+                                  );
+                                },
+                                delay: 800,
+                              ),
+                              
+                              // Forum
+                              _buildFeatureCard(
+                                icon: Icons.forum,
+                                title: 'Forum',
+                                subtitle: 'Tartışma',
+                                color: Colors.green,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (context) => const ForumScreen()),
+                                  );
+                                },
+                                delay: 900,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+
                           // Yaklaşan Etkinlikler
                           if (_upcomingEvents.isNotEmpty) ...[
+                            Row(
+                              children: [
                             Text(
                               'Yaklaşan Etkinlikler',
                               style: GoogleFonts.inter(
@@ -235,17 +431,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
-                            ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (context) => const EventsScreen()),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Tümünü Gör',
+                                    style: GoogleFonts.inter(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ).animate().fadeIn(delay: 1000.ms, duration: 600.ms),
                             const SizedBox(height: 12),
                             SizedBox(
-                              height: 220,
+                              height: 200,
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: _upcomingEvents.length,
                                 itemBuilder: (context, index) {
                                   final event = _upcomingEvents[index];
                                   return Container(
-                                    width: 300,
+                                    width: 280,
                                     margin: const EdgeInsets.only(right: 16),
                                     child: Card(
                                       elevation: 0,
@@ -256,44 +469,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           width: 1,
                                         ),
                                       ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          if (event.image != null)
-                                            ClipRRect(
-                                              borderRadius: const BorderRadius.vertical(
-                                                top: Radius.circular(12),
-                                              ),
-                                              child: Image.network(
-                                                event.image!,
-                                                height: 120,
-                                                width: double.infinity,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) {
-                                                  return Container(
-                                                    height: 120,
-                                                    decoration: BoxDecoration(
-                                                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                                      borderRadius: const BorderRadius.vertical(
-                                                        top: Radius.circular(12),
-                                                      ),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.event,
-                                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                      size: 40,
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          Padding(
-                                            padding: const EdgeInsets.all(16),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                            Row(
                                               children: [
-                                                Text(
-                                                  event.title,
+                                                Container(
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.event,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                  event.name,
                                                   style: GoogleFonts.inter(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.bold,
@@ -302,7 +500,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
-                                                const SizedBox(height: 8),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
                                                 Row(
                                                   children: [
                                                     Icon(
@@ -313,7 +514,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                     const SizedBox(width: 4),
                                                     Expanded(
                                                       child: Text(
-                                                        event.location,
+                                                        '${event.venue} (${event.cityDisplay})',
                                                         style: GoogleFonts.inter(
                                                           fontSize: 14,
                                                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -332,7 +533,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      '${event.startDate.day}/${event.startDate.month}/${event.startDate.year}',
+                                                      '${event.date} ${event.timeFormatted}',
                                                       style: GoogleFonts.inter(
                                                         fontSize: 12,
                                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -342,19 +543,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                        ],
                                       ),
                                     ),
-                                  ).animate().fadeIn(delay: (700 + index * 100).ms, duration: 600.ms).slideX(begin: 0.3);
+                                  ).animate().fadeIn(delay: (1200 + index * 100).ms, duration: 600.ms).slideX(begin: 0.3);
                                 },
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 32),
                           ],
 
                           // Duyurular
                           if (_announcements.isNotEmpty) ...[
+                            Row(
+                              children: [
                             Text(
                               'Duyurular',
                               style: GoogleFonts.inter(
@@ -362,7 +563,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
-                            ).animate().fadeIn(delay: 900.ms, duration: 600.ms),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${_announcements.length}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ).animate().fadeIn(delay: 1400.ms, duration: 600.ms),
                             const SizedBox(height: 12),
                             ListView.builder(
                               shrinkWrap: true,
@@ -388,11 +607,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         children: [
                                           Row(
                                             children: [
-                                              Icon(
+                                              Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Icon(
                                                 Icons.announcement,
                                                 color: Theme.of(context).colorScheme.primary,
+                                                  size: 16,
+                                                ),
                                               ),
-                                              const SizedBox(width: 8),
+                                              const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
                                                   announcement.title,
@@ -427,15 +654,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                     ),
                                   ),
-                                ).animate().fadeIn(delay: (1100 + index * 100).ms, duration: 600.ms).slideY(begin: 0.3);
+                                ).animate().fadeIn(delay: (1600 + index * 100).ms, duration: 600.ms).slideY(begin: 0.3);
                               },
                             ),
                           ],
-
-                          // Reklam alanı
-                          AdvertisementWidget(
-                            height: 120,
-                          ).animate().fadeIn(delay: 1500.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8)),
                         ]),
                       ),
                     ),
@@ -463,6 +685,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const ForumScreen()),
               );
+            } else if (index == 2) {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const EventsScreen()),
+              );
+            } else if (index == 3) {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const TicketsScreen()),
+              );
             }
           },
           type: BottomNavigationBarType.fixed,
@@ -484,12 +714,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
               label: 'Etkinlikler',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: 'Bildirimler',
+              icon: Icon(Icons.confirmation_number),
+              label: 'Biletlerim',
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildFeatureCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    required int delay,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color,
+                color.withOpacity(0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 32,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: delay.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8));
   }
 } 

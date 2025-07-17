@@ -29,10 +29,11 @@ class ForumService {
     }
   }
 
-  static Future<Map<String, dynamic>> createThread(String title) async {
+  static Future<Map<String, dynamic>> createThread(String title, String category) async {
     try {
       final response = await ApiService.post('/forum/threads/', {
         'title': title,
+        'category': category,
       });
       
       if (response.statusCode == 201) {
@@ -76,6 +77,30 @@ class ForumService {
       return {
         'success': false,
         'message': 'Thread detay hatası: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleThreadLike(int threadId) async {
+    try {
+      final response = await ApiService.post('/forum/threads/$threadId/like/', {});
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'liked': data['liked'],
+          'likes_count': data['likes_count'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Beğeni işlemi başarısız.',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Beğeni işlemi hatası: $e',
       };
     }
   }
@@ -206,6 +231,30 @@ class ForumService {
       return {
         'success': false,
         'message': 'İstatistik hatası: $e',
+      };
+    }
+  }
+
+  // Hot Topics (Trend) threadler
+  static Future<Map<String, dynamic>> getHotTopics() async {
+    try {
+      final response = await ApiService.get('/forum/threads/hot/');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'hotTopics': data,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Trend konular yüklenemedi.',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Trend konu yükleme hatası: $e',
       };
     }
   }

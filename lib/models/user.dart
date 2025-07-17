@@ -2,60 +2,103 @@ class User {
   final int id;
   final String username;
   final String email;
-  final String firstName;
-  final String lastName;
+  final String? firstName;
+  final String? lastName;
+  final bool isPremium;
+  final bool isPremiumActive;
+  final bool emailVerified;
   final String? profilePicture;
   final String? bio;
   final String? phoneNumber;
-  final bool isPremium;
-  final DateTime? premiumExpiresAt;
-  final String customUsernameColor;
+  final String? customUsernameColor;
   final String? cardNumber;
+  final DateTime? cardIssuedAt;
   final bool canCreateThreads;
-  final DateTime dateJoined;
-  final DateTime? lastLogin;
+  final bool isSecondhandSeller;
+  final int? threadCount;
+  final bool isBanned;
+  final String? banReason;
+  final DateTime? banUntil;
+  // Social media fields
+  final String? instagram;
+  final String? twitter;
+  final String? facebook;
+  final String? linkedin;
+  final String? website;
+  // Follow system fields
+  final int followersCount;
+  final int followingCount;
+  final bool isFollowing;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   User({
     required this.id,
     required this.username,
     required this.email,
-    required this.firstName,
-    required this.lastName,
+    this.firstName,
+    this.lastName,
+    required this.isPremium,
+    required this.isPremiumActive,
+    required this.emailVerified,
     this.profilePicture,
     this.bio,
     this.phoneNumber,
-    required this.isPremium,
-    this.premiumExpiresAt,
-    required this.customUsernameColor,
+    this.customUsernameColor,
     this.cardNumber,
+    this.cardIssuedAt,
     required this.canCreateThreads,
-    required this.dateJoined,
-    this.lastLogin,
+    required this.isSecondhandSeller,
+    this.instagram,
+    this.twitter,
+    this.facebook,
+    this.linkedin,
+    this.website,
+    required this.followersCount,
+    required this.followingCount,
+    required this.isFollowing,
+    required this.createdAt,
+    required this.updatedAt,
+    this.threadCount,
+    required this.isBanned,
+    this.banReason,
+    this.banUntil,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] ?? 0,
-      username: json['username'] ?? '',
-      email: json['email'] ?? '',
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
+      id: json['id'],
+      username: json['username'],
+      email: json['email'],
+      firstName: json['first_name'],
+      lastName: json['last_name'],
+      isPremium: json['is_premium'] ?? false,
+      isPremiumActive: json['is_premium_active'] ?? false,
+      emailVerified: json['email_verified'] ?? false,
       profilePicture: json['profile_picture'],
       bio: json['bio'],
       phoneNumber: json['phone_number'],
-      isPremium: json['is_premium'] ?? false,
-      premiumExpiresAt: json['premium_expires_at'] != null 
-          ? DateTime.parse(json['premium_expires_at']) 
-          : null,
-      customUsernameColor: json['custom_username_color'] ?? '#000000',
+      customUsernameColor: json['custom_username_color'],
       cardNumber: json['card_number'],
-      canCreateThreads: json['can_create_threads'] ?? false,
-      dateJoined: json['date_joined'] != null 
-          ? DateTime.parse(json['date_joined'])
-          : DateTime.now(),
-      lastLogin: json['last_login'] != null 
-          ? DateTime.parse(json['last_login']) 
+      cardIssuedAt: json['card_issued_at'] != null 
+          ? DateTime.parse(json['card_issued_at']) 
           : null,
+      canCreateThreads: json['can_create_threads'] ?? false,
+      isSecondhandSeller: json['is_secondhand_seller'] ?? false,
+      instagram: json['instagram'],
+      twitter: json['twitter'],
+      facebook: json['facebook'],
+      linkedin: json['linkedin'],
+      website: json['website'],
+      followersCount: json['followers_count'] ?? 0,
+      followingCount: json['following_count'] ?? 0,
+      isFollowing: json['is_following'] ?? false,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+      threadCount: json['thread_count'],
+      isBanned: json['is_banned'] ?? false,
+      banReason: json['ban_reason'],
+      banUntil: json['ban_until'] != null ? DateTime.tryParse(json['ban_until']) : null,
     );
   }
 
@@ -66,16 +109,42 @@ class User {
       'email': email,
       'first_name': firstName,
       'last_name': lastName,
+      'is_premium': isPremium,
+      'is_premium_active': isPremiumActive,
+      'email_verified': emailVerified,
       'profile_picture': profilePicture,
       'bio': bio,
       'phone_number': phoneNumber,
-      'is_premium': isPremium,
-      'premium_expires_at': premiumExpiresAt?.toIso8601String(),
       'custom_username_color': customUsernameColor,
       'card_number': cardNumber,
+      'card_issued_at': cardIssuedAt?.toIso8601String(),
       'can_create_threads': canCreateThreads,
-      'date_joined': dateJoined.toIso8601String(),
-      'last_login': lastLogin?.toIso8601String(),
+      'is_secondhand_seller': isSecondhandSeller,
+      'instagram': instagram,
+      'twitter': twitter,
+      'facebook': facebook,
+      'linkedin': linkedin,
+      'website': website,
+      'followers_count': followersCount,
+      'following_count': followingCount,
+      'is_following': isFollowing,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'thread_count': threadCount,
+      'is_banned': isBanned,
+      'ban_reason': banReason,
+      'ban_until': banUntil?.toIso8601String(),
     };
+  }
+
+  String get fullName {
+    if (firstName != null && lastName != null) {
+      return '$firstName $lastName';
+    } else if (firstName != null) {
+      return firstName!;
+    } else if (lastName != null) {
+      return lastName!;
+    }
+    return username;
   }
 } 
