@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../utils/responsive_utils.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 import '../models/user.dart';
@@ -114,131 +115,163 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(20),
+                      padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                       itemCount: _products.length,
                       itemBuilder: (context, index) {
                         final product = _products[index];
-                        return Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1),
-                          ),
-                          margin: const EdgeInsets.only(bottom: 18),
-                          color: Theme.of(context).colorScheme.surface,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => ProductDetailScreen(product: product),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: product.imageUrl != null
-                                        ? Image.network(
-                                            product.imageUrl!,
-                                            width: 80,
-                                            height: 80,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 40),
-                                          )
-                                        : Container(
-                                            width: 80,
-                                            height: 80,
-                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                                            child: Icon(Icons.image, size: 40, color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
-                                          ),
+                        return Container(
+                          margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 12),
+                          child: Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1),
+                            ),
+                            color: Theme.of(context).colorScheme.surface,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailScreen(product: product),
                                   ),
-                                  const SizedBox(width: 20),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                product.title,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                  color: Theme.of(context).colorScheme.primary,
+                                );
+                              },
+                              child: Padding(
+                                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: product.imageUrl != null
+                                          ? Image.network(
+                                              product.imageUrl!,
+                                              width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                              height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Icon(
+                                                Icons.image_not_supported, 
+                                                size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)
+                                              ),
+                                            )
+                                          : Container(
+                                              width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                              height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                              child: Icon(
+                                                Icons.image, 
+                                                size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24), 
+                                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3)
+                                              ),
+                                            ),
+                                    ),
+                                    SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  product.title,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),
-                                            ),
-                                            IconButton(
-                                              onPressed: () => _toggleFavorite(product),
-                                              icon: Icon(
-                                                product.isFavorited ? Icons.favorite : Icons.favorite_border,
-                                                color: product.isFavorited ? Colors.red : Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                                                size: 24,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          product.description,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '${product.price} TL',
-                                                style: TextStyle(
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                  fontWeight: FontWeight.bold,
+                                              IconButton(
+                                                onPressed: () => _toggleFavorite(product),
+                                                icon: Icon(
+                                                  product.isFavorited ? Icons.favorite : Icons.favorite_border,
+                                                  color: product.isFavorited ? Colors.red : Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                                  size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 20),
                                                 ),
                                               ),
+                                            ],
+                                          ),
+                                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 6)),
+                                          Text(
+                                            product.description,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
                                             ),
-                                            const SizedBox(width: 10),
-                                            Icon(Icons.category, size: 18, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              product.categoryDetail?['name'] ?? '',
-                                              style: TextStyle(
-                                                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                                                fontSize: 14,
+                                          ),
+                                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
+                                          Wrap(
+                                            spacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 8),
+                                            runSpacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 4),
+                                            children: [
+                                              Container(
+                                                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 6, horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  '${product.price} TL',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12)
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                            const Spacer(),
-                                            if (product.favoriteCount > 0)
                                               Row(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(Icons.favorite, size: 16, color: Colors.red.withOpacity(0.7)),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${product.favoriteCount}',
-                                                    style: TextStyle(
-                                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                                                      fontSize: 12,
+                                                  Icon(
+                                                    Icons.category, 
+                                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 14), 
+                                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.7)
+                                                  ),
+                                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 2)),
+                                                  Flexible(
+                                                    child: Text(
+                                                      product.categoryDetail?['name'] ?? '',
+                                                      style: TextStyle(
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12)
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                          ],
-                                        ),
-                                      ],
+                                              if (product.favoriteCount > 0)
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.favorite, 
+                                                      size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 12), 
+                                                      color: Colors.red.withOpacity(0.7)
+                                                    ),
+                                                    SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 2)),
+                                                    Text(
+                                                      '${product.favoriteCount}',
+                                                      style: TextStyle(
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 10)
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

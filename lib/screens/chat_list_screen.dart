@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/message.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'chat_screen.dart';
+import 'dart:convert';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({Key? key}) : super(key: key);
@@ -60,7 +61,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sohbetler')),
+      appBar: AppBar(title: Text('Sohbetler', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        ))),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _conversations.isEmpty
@@ -90,7 +93,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           : const Text('Henüz mesaj yok'),
                       trailing: (conv.unreadCount ?? 0) > 0
                           ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(12),

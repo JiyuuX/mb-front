@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'login_screen.dart';
@@ -248,9 +249,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       }
 
       final token = await ApiService.getToken();
+      final baseUrl = await ApiService.effectiveBaseUrl;
       final request = http.MultipartRequest(
         'PUT',
-        Uri.parse('${ApiService.baseUrl}/users/update/'),
+        Uri.parse('$baseUrl/users/update/'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -273,11 +275,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         );
       }
 
-      final response = await request.send();
-      final responseData = await response.stream.bytesToString();
-      final data = json.decode(responseData);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('Profile update response status: ${response.statusCode}');
+      print('Profile update response body: ${response.body}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -287,13 +291,21 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
-          _loadUserProfile();
+          await _loadUserProfile();
         }
       } else {
+        String errorMessage = 'Profil resmi güncellenirken hata oluştu.';
+        try {
+          final data = json.decode(response.body);
+          errorMessage = data['message'] ?? data['detail'] ?? errorMessage;
+        } catch (e) {
+          print('Error parsing response: $e');
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(data['message'] ?? 'Profil resmi güncellenirken hata oluştu.'),
+              content: Text(errorMessage),
               backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -302,6 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         }
       }
     } catch (e) {
+      print('Profile image upload error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

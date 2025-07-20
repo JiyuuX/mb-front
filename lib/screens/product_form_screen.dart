@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../utils/responsive_utils.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -93,17 +94,42 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         'subcategory': _selectedSubcategoryId,
         'status': _status,
       };
+      
+      print('Submitting product data: $data');
+      
       final product = widget.product == null
           ? await ProductService.createProduct(data)
           : await ProductService.updateProduct(widget.product!.id, data);
+      
+      print('Product created/updated: ${product.id}');
+      
       if (widget.product == null && _pickedImages.isNotEmpty) {
+        print('Uploading ${_pickedImages.length} images for product ${product.id}');
         await ProductService.uploadProductImages(product.id, _pickedImages);
+        print('Images uploaded successfully');
       }
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(widget.product == null ? 'Ürün başarıyla eklendi!' : 'Ürün başarıyla güncellendi!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      print('Product submit error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: $e'), 
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     } finally {
@@ -116,258 +142,337 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text(widget.product == null ? 'Ürün Ekle' : 'Ürünü Düzenle', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+        title: Text(widget.product == null ? 'Ürün Ekle' : 'Ürünü Düzenle', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
+          color: Theme.of(context).colorScheme.primary, 
+          fontWeight: FontWeight.bold
+        )),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
         iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
       ),
-      body: Center(
-        child: Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1),
-          ),
-          margin: const EdgeInsets.all(24),
-          color: Theme.of(context).colorScheme.surface,
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      labelText: 'Başlık',
-                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    validator: (v) => v == null || v.isEmpty ? 'Başlık gerekli' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  TextFormField(
-                    controller: _descController,
-                    decoration: InputDecoration(
-                      labelText: 'Açıklama',
-                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    maxLines: 3,
-                    validator: (v) => v == null || v.isEmpty ? 'Açıklama gerekli' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  TextFormField(
-                    controller: _priceController,
-                    decoration: InputDecoration(
-                      labelText: 'Fiyat (TL)',
-                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) => v == null || v.isEmpty ? 'Fiyat gerekli' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  DropdownButtonFormField<int>(
-                    value: _selectedCategoryId,
-                    items: _categories.map<DropdownMenuItem<int>>((cat) => DropdownMenuItem<int>(
-                      value: cat['id'] as int,
-                      child: Text(cat['name'] ?? ''),
-                    )).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedCategoryId = val;
-                        _selectedSubcategoryId = null;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Kategori',
-                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    validator: (v) => v == null ? 'Kategori gerekli' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  if (_selectedCategoryId != null)
-                    DropdownButtonFormField<int>(
-                      value: _selectedSubcategoryId,
-                      items: _getSubcategories(_selectedCategoryId)
-                          .map<DropdownMenuItem<int>>((subcat) => DropdownMenuItem<int>(
-                                value: subcat['id'] as int,
-                                child: Text(subcat['name']),
-                              ))
-                          .toList(),
-                      onChanged: (val) => setState(() => _selectedSubcategoryId = val),
-                      decoration: InputDecoration(
-                        labelText: 'Alt Kategori',
-                        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      ),
-                      validator: (v) => v == null ? 'Alt kategori gerekli' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  DropdownButtonFormField<String>(
-                    value: _status,
-                    items: const [
-                      DropdownMenuItem(value: 'new', child: Text('Yeni')),
-                      DropdownMenuItem(value: 'used', child: Text('2. El')),
-                    ],
-                    onChanged: (v) => setState(() => _status = v ?? 'used'),
-                    decoration: InputDecoration(
-                      labelText: 'Durum',
-                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
+      body: SingleChildScrollView(
+        padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: ResponsiveUtils.isLargeScreen(context) ? 600 : double.infinity,
+            ),
+            child: Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1),
+              ),
+              margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+              color: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: _pickImages,
-                        icon: const Icon(Icons.image),
-                        label: const Text('Görselleri Seç'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Başlık',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         ),
+                        validator: (v) => v == null || v.isEmpty ? 'Başlık gerekli' : null,
                       ),
-                      const SizedBox(width: 12),
-                      if (_pickedImages.isNotEmpty)
-                        Expanded(
-                          child: SizedBox(
-                            height: 60,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _pickedImages.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 8),
-                              itemBuilder: (context, idx) {
-                                if (kIsWeb) {
-                                  return Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.image, color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
-                                  );
-                                } else {
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.file(
-                                      File(_pickedImages[idx].path),
-                                      width: 60,
-                                      height: 60,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  );
-                                }
-                              },
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      TextFormField(
+                        controller: _descController,
+                        decoration: InputDecoration(
+                          labelText: 'Açıklama',
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        ),
+                        maxLines: 3,
+                        validator: (v) => v == null || v.isEmpty ? 'Açıklama gerekli' : null,
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      TextFormField(
+                        controller: _priceController,
+                        decoration: InputDecoration(
+                          labelText: 'Fiyat (TL)',
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v == null || v.isEmpty ? 'Fiyat gerekli' : null,
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      DropdownButtonFormField<int>(
+                        value: _selectedCategoryId,
+                        items: _categories.map<DropdownMenuItem<int>>((cat) => DropdownMenuItem<int>(
+                          value: cat['id'] as int,
+                          child: Text(
+                            cat['name'] ?? '',
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
                             ),
                           ),
+                        )).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedCategoryId = val;
+                            _selectedSubcategoryId = null;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Kategori',
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _submit,
+                        validator: (v) => v == null ? 'Kategori gerekli' : null,
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      if (_selectedCategoryId != null)
+                        DropdownButtonFormField<int>(
+                          value: _selectedSubcategoryId,
+                          items: _getSubcategories(_selectedCategoryId)
+                              .map<DropdownMenuItem<int>>((subcat) => DropdownMenuItem<int>(
+                                    value: subcat['id'] as int,
+                                    child: Text(
+                                      subcat['name'],
+                                      style: TextStyle(
+                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (val) => setState(() => _selectedSubcategoryId = val),
+                          decoration: InputDecoration(
+                            labelText: 'Alt Kategori',
+                            labelStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          ),
+                          validator: (v) => v == null ? 'Alt kategori gerekli' : null,
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      DropdownButtonFormField<String>(
+                        value: _status,
+                        items: [
+                          DropdownMenuItem(
+                            value: 'new', 
+                            child: Text(
+                              'Yeni',
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                              )
+                            )
+                          ),
+                          DropdownMenuItem(
+                            value: 'used', 
+                            child: Text(
+                              '2. El',
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                              )
+                            )
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _status = v ?? 'used'),
+                        decoration: InputDecoration(
+                          labelText: 'Durum',
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _pickImages,
+                            icon: Icon(
+                              Icons.image,
+                              size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 18)
+                            ),
+                            label: Text(
+                              'Görselleri Seç',
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                              )
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).colorScheme.primary,
                               foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               elevation: 0,
+                              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12, horizontal: 16, vertical: 8),
                             ),
-                            child: Text(widget.product == null ? 'Ekle' : 'Güncelle', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           ),
-                        ),
-                ],
+                          if (_pickedImages.isNotEmpty) ...[
+                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                            SizedBox(
+                              height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _pickedImages.length,
+                                separatorBuilder: (_, __) => SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
+                                itemBuilder: (context, idx) {
+                                  if (kIsWeb) {
+                                    return Container(
+                                      width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                      height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.image, 
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                        size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)
+                                      ),
+                                    );
+                                  } else {
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        File(_pickedImages[idx].path),
+                                        width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                        height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 24)),
+                      _isLoading
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            )
+                          : SizedBox(
+                              width: double.infinity,
+                              height: ResponsiveUtils.getResponsiveButtonHeight(context, baseHeight: 48),
+                              child: ElevatedButton(
+                                onPressed: _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  widget.product == null ? 'Ekle' : 'Güncelle', 
+                                  style: TextStyle(
+                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16), 
+                                    fontWeight: FontWeight.bold
+                                  )
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

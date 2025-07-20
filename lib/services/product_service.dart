@@ -56,24 +56,47 @@ class ProductService {
 
   static Future<void> uploadProductImages(int productId, List<XFile> images) async {
     for (final image in images) {
-      var request = http.MultipartRequest('POST', Uri.parse('${ApiService.baseUrl}/market/products/$productId/upload_image/'));
-      final token = await ApiService.getToken();
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
+      try {
+        final baseUrl = await ApiService.effectiveBaseUrl;
+        var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/market/products/$productId/upload_image/'));
+        final token = await ApiService.getToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'image',
+              bytes,
+              filename: image.name,
+            ),
+          );
+        } else {
+          request.files.add(await http.MultipartFile.fromPath('image', image.path));
+        }
+        
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        print('Product image upload response status: ${response.statusCode}');
+        print('Product image upload response body: ${response.body}');
+        
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          String errorMessage = 'Resim yüklenirken hata oluştu.';
+          try {
+            final data = json.decode(response.body);
+            errorMessage = data['message'] ?? data['detail'] ?? errorMessage;
+          } catch (e) {
+            print('Error parsing response: $e');
+          }
+          throw Exception(errorMessage);
+        }
+      } catch (e) {
+        print('Product image upload error: $e');
+        throw Exception('Resim yüklenirken hata oluştu: $e');
       }
-      if (kIsWeb) {
-        final bytes = await image.readAsBytes();
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'image',
-            bytes,
-            filename: image.name,
-          ),
-        );
-      } else {
-        request.files.add(await http.MultipartFile.fromPath('image', image.path));
-      }
-      await request.send();
     }
   }
 

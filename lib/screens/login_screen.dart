@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
+import '../utils/responsive_utils.dart';
 import '../widgets/ban_dialog.dart';
 import 'register_screen.dart';
 import 'dashboard_screen.dart';
@@ -100,34 +101,34 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo ve başlık
                 Icon(
                   Icons.school,
-                  size: 80,
+                  size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 80),
                   color: Theme.of(context).colorScheme.primary,
                 ).animate().scale(duration: 600.ms).then().shimmer(duration: 2.seconds),
-                const SizedBox(height: 16),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
                 Text(
                   'HPGenc',
                   style: GoogleFonts.inter(
-                    fontSize: 36,
+                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 36),
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.3),
-                const SizedBox(height: 8),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
                 Text(
                   'Üniversite Gençlik Platformu',
                   style: GoogleFonts.inter(
-                    fontSize: 16,
+                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.3),
-                const SizedBox(height: 48),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 48)),
 
                 // Login formu
                 Card(
@@ -140,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 32.0),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -149,12 +150,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Hoş Geldiniz',
                             style: GoogleFonts.inter(
-                              fontSize: 24,
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 24),
                               fontWeight: FontWeight.w600,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                           ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
-                          const SizedBox(height: 32),
+                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
 
                           // Kullanıcı adı alanı
                           TextFormField(

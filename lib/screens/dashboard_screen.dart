@@ -12,6 +12,7 @@ import '../widgets/news_ticker.dart';
 import '../widgets/advertisement_widget.dart';
 import '../widgets/theme_switch.dart';
 import '../widgets/ban_dialog.dart';
+import '../utils/responsive_utils.dart';
 import 'profile_screen.dart';
 import 'forum_screen.dart';
 import 'login_screen.dart';
@@ -212,7 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   slivers: [
                     // App Bar
                     SliverAppBar(
-                      expandedHeight: 120,
+                      expandedHeight: ResponsiveUtils.getResponsiveCardHeight(context, baseHeight: 120),
                       floating: false,
                       pinned: true,
                       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -221,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         title: Text(
                           'HPGenc',
                           style: GoogleFonts.inter(
-                            fontSize: 24,
+                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 24),
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
                           ),
@@ -275,9 +276,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _loadUserProfile();
                           },
                           child: Container(
-                            margin: const EdgeInsets.all(8),
-                            width: 56,
-                            height: 56,
+                            margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
+                            width: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
+                            height: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
@@ -290,14 +291,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ? ClipOval(
                                     child: Image.network(
                                       _user!.profilePicture!,
-                                      width: 56,
-                                      height: 56,
+                                      width: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
+                                      height: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) {
                                         return Icon(
                                           Icons.person,
                                           color: Theme.of(context).colorScheme.primary,
-                                          size: 32,
+                                          size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 32),
                                         );
                                       },
                                     ),
@@ -305,7 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 : Icon(
                                     Icons.person,
                                     color: Theme.of(context).colorScheme.primary,
-                                    size: 32,
+                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 32),
                                   ),
                           ),
                         ).animate().scale(duration: 300.ms),
@@ -314,21 +315,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     // Content
                     SliverPadding(
-                      padding: const EdgeInsets.all(16),
+                      padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
                           // Reklam en üstte
                           AdvertisementWidget(
-                            height: 120,
+                            height: ResponsiveUtils.getResponsiveCardHeight(context, baseHeight: 120),
                           ).animate().fadeIn(delay: 200.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8)),
-                          const SizedBox(height: 16),
+                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
                           
                           // Haber Ticker
                           Container(
-                            margin: const EdgeInsets.only(bottom: 8),
+                            margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 8),
                             child: NewsTicker(
                               news: _news,
-                              height: 50,
+                              height: ResponsiveUtils.getResponsiveCardHeight(context, baseHeight: 50),
                               backgroundColor: Theme.of(context).colorScheme.primary,
                               textColor: Theme.of(context).colorScheme.onPrimary,
                               isEnabled: _newsEnabled,
@@ -339,27 +340,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               },
                             ),
                           ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.3),
-                          const SizedBox(height: 24),
+                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 24)),
 
                           // Ana Özellikler Grid
                           Text(
                             'Ana Özellikler',
                             style: GoogleFonts.inter(
-                              fontSize: 22,
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 22),
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                           ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
-                          const SizedBox(height: 16),
+                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
                           
-                          // 2x2 Grid Layout
+                          // Responsive Grid Layout
                           GridView.count(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1.2,
+                            crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 16),
+                            mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 16),
+                            childAspectRatio: ResponsiveUtils.isSmallScreen(context) ? 0.8 : ResponsiveUtils.isMediumScreen(context) ? 1.0 : 1.3,
                             children: [
                               // 2. El Kıyafetler
                               _buildFeatureCard(
@@ -418,7 +419,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 32),
+                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
 
                           // Yaklaşan Etkinlikler
                           if (_upcomingEvents.isNotEmpty) ...[
@@ -427,7 +428,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Text(
                               'Yaklaşan Etkinlikler',
                               style: GoogleFonts.inter(
-                                fontSize: 20,
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 20),
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
@@ -444,22 +445,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     style: GoogleFonts.inter(
                                       color: Theme.of(context).colorScheme.primary,
                                       fontWeight: FontWeight.w600,
+                                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                                     ),
                                   ),
                                 ),
                               ],
                             ).animate().fadeIn(delay: 1000.ms, duration: 600.ms),
-                            const SizedBox(height: 12),
+                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                             SizedBox(
-                              height: 200,
+                              height: ResponsiveUtils.getResponsiveCardHeight(context, baseHeight: 200),
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: _upcomingEvents.length,
                                 itemBuilder: (context, index) {
                                   final event = _upcomingEvents[index];
                                   return Container(
-                                    width: 280,
-                                    margin: const EdgeInsets.only(right: 16),
+                                    width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 280),
+                                    margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, right: 16),
                                     child: Card(
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
@@ -470,14 +472,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                       ),
                                       child: Padding(
-                                        padding: const EdgeInsets.all(16),
+                                        padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.all(8),
+                                                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
                                                   decoration: BoxDecoration(
                                                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                                     borderRadius: BorderRadius.circular(8),
@@ -485,15 +487,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   child: Icon(
                                                     Icons.event,
                                                     color: Theme.of(context).colorScheme.primary,
-                                                    size: 20,
+                                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 20),
                                                   ),
                                                 ),
-                                                const SizedBox(width: 12),
+                                                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                                                 Expanded(
                                                   child: Text(
                                                   event.name,
                                                   style: GoogleFonts.inter(
-                                                    fontSize: 16,
+                                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
                                                     fontWeight: FontWeight.bold,
                                                     color: Theme.of(context).colorScheme.onSurface,
                                                   ),
@@ -503,39 +505,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 12),
+                                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                                                 Row(
                                                   children: [
                                                     Icon(
                                                       Icons.location_on,
                                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                      size: 16,
+                                                      size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
                                                     ),
-                                                    const SizedBox(width: 4),
+                                                    SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 4)),
                                                     Expanded(
                                                       child: Text(
                                                         '${event.venue} (${event.cityDisplay})',
                                                         style: GoogleFonts.inter(
-                                                          fontSize: 14,
+                                                          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                                                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                         ),
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                                const SizedBox(height: 4),
+                                                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 4)),
                                                 Row(
                                                   children: [
                                                     Icon(
                                                       Icons.calendar_today,
                                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                      size: 16,
+                                                      size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
                                                     ),
-                                                    const SizedBox(width: 4),
+                                                    SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 4)),
                                                     Text(
                                                       '${event.date} ${event.timeFormatted}',
                                                       style: GoogleFonts.inter(
-                                                        fontSize: 12,
+                                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12),
                                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                       ),
                                                     ),
@@ -549,7 +551,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 },
                               ),
                             ),
-                            const SizedBox(height: 32),
+                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
                           ],
 
                           // Duyurular
@@ -559,14 +561,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Text(
                               'Duyurular',
                               style: GoogleFonts.inter(
-                                fontSize: 20,
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 20),
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                                 ),
                                 const Spacer(),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
@@ -574,7 +576,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Text(
                                     '${_announcements.length}',
                                     style: GoogleFonts.inter(
-                                      fontSize: 12,
+                                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12),
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(context).colorScheme.primary,
                                     ),
@@ -582,7 +584,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ],
                             ).animate().fadeIn(delay: 1400.ms, duration: 600.ms),
-                            const SizedBox(height: 12),
+                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                             ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -590,7 +592,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               itemBuilder: (context, index) {
                                 final announcement = _announcements[index];
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 12),
                                   child: Card(
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -601,14 +603,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                     ),
                                     child: Padding(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Container(
-                                                padding: const EdgeInsets.all(6),
+                                                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 6),
                                                 decoration: BoxDecoration(
                                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                                   borderRadius: BorderRadius.circular(6),
@@ -616,15 +618,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 child: Icon(
                                                 Icons.announcement,
                                                 color: Theme.of(context).colorScheme.primary,
-                                                  size: 16,
+                                                  size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
                                                 ),
                                               ),
-                                              const SizedBox(width: 12),
+                                              SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                                               Expanded(
                                                 child: Text(
                                                   announcement.title,
                                                   style: GoogleFonts.inter(
-                                                    fontSize: 16,
+                                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
                                                     fontWeight: FontWeight.bold,
                                                     color: Theme.of(context).colorScheme.onSurface,
                                                   ),
@@ -632,21 +634,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 8),
+                                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
                                           Text(
                                             announcement.content,
                                             style: GoogleFonts.inter(
-                                              fontSize: 14,
+                                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                                             ),
                                             maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 8),
+                                          SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
                                           Text(
                                             '${announcement.publishDate.day}/${announcement.publishDate.month}/${announcement.publishDate.year}',
                                             style: GoogleFonts.inter(
-                                              fontSize: 12,
+                                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12),
                                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                                             ),
                                           ),
@@ -755,30 +757,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.all(20),
+          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 32,
+                size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 32),
                 color: Colors.white,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
               Text(
                 title,
                 style: GoogleFonts.inter(
-                  fontSize: 16,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 4)),
               Text(
                 subtitle,
                 style: GoogleFonts.inter(
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12),
                   color: Colors.white.withOpacity(0.8),
                 ),
                 textAlign: TextAlign.center,

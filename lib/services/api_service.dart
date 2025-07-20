@@ -10,9 +10,41 @@ class BanException implements Exception {
 }
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000/api'; // Web için localhost
-  // static const String baseUrl = 'http://10.0.2.2:8000/api'; // Android emulator için
-  // static const String baseUrl = 'http://127.0.0.1:8000/api'; // iOS simulator için
+  // Dinamik IP adresi - her iki bilgisayar için uyumlu
+  static String get baseUrl {
+    // Android emulator için özel IP
+    if (const bool.fromEnvironment('dart.vm.product') == false) {
+      return 'http://10.0.2.2:8000/api'; // Android emulator
+    }
+    
+    // Gerçek cihazlar için ağ IP'si
+    // Windows: 192.168.1.105, macOS: 192.168.1.100
+    // Aynı ağda olduğu için her iki IP de çalışacak
+    return 'http://192.168.1.105:8000/api'; // Ana IP (Windows)
+    // Alternatif: return 'http://192.168.1.100:8000/api'; // macOS IP
+  }
+  
+  // IP adresini değiştirmek için kullanın
+  static String? _customBaseUrl;
+  static void setCustomBaseUrl(String url) {
+    _customBaseUrl = url;
+  }
+  
+  static Future<String> get effectiveBaseUrl async {
+    if (_customBaseUrl != null) {
+      return _customBaseUrl!;
+    }
+    
+    // Kaydedilen IP'yi kontrol et
+    final prefs = await SharedPreferences.getInstance();
+    final savedIp = prefs.getString('custom_ip');
+    if (savedIp != null) {
+      return 'http://$savedIp:8000/api';
+    }
+    
+    // Varsayılan IP (Mac için)
+    return 'http://192.168.1.100:8000/api';
+  }
 
   // Ban handler
   static void Function(Map<String, dynamic> banInfo)? onBanDetected;
@@ -42,6 +74,7 @@ class ApiService {
 
   static Future<http.Response> get(String endpoint) async {
     final headers = await _getHeaders();
+    final baseUrl = await effectiveBaseUrl;
     final response = await http.get(
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,
@@ -59,6 +92,7 @@ class ApiService {
 
   static Future<http.Response> post(String endpoint, Map<String, dynamic> data) async {
     final headers = await _getHeaders();
+    final baseUrl = await effectiveBaseUrl;
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,
@@ -77,6 +111,7 @@ class ApiService {
 
   static Future<http.Response> put(String endpoint, Map<String, dynamic> data) async {
     final headers = await _getHeaders();
+    final baseUrl = await effectiveBaseUrl;
     final response = await http.put(
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,
@@ -95,6 +130,7 @@ class ApiService {
 
   static Future<http.Response> delete(String endpoint) async {
     final headers = await _getHeaders();
+    final baseUrl = await effectiveBaseUrl;
     final response = await http.delete(
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
-import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'event_detail_screen.dart';
 
 class EventsScreen extends StatefulWidget {
@@ -29,9 +29,10 @@ class _EventsScreenState extends State<EventsScreen> {
         _events = events;
         _isLoading = false;
       });
-    } on BanException {
-      rethrow; // BanException'ı yeniden fırlat, başka hata mesajı gösterme
     } catch (e) {
+      if (e.toString().contains('BanException')) {
+        rethrow; // BanException'ı yeniden fırlat, başka hata mesajı gösterme
+      }
       setState(() { _isLoading = false; });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Etkinlikler yüklenemedi: $e'), backgroundColor: Colors.red),
@@ -45,9 +46,10 @@ class _EventsScreenState extends State<EventsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Bilet alındı! Kodunuz: ${ticket.code}'), backgroundColor: Colors.green),
       );
-    } on BanException {
-      rethrow; // BanException'ı yeniden fırlat, başka hata mesajı gösterme
     } catch (e) {
+      if (e.toString().contains('BanException')) {
+        rethrow; // BanException'ı yeniden fırlat, başka hata mesajı gösterme
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Bilet alınamadı: $e'), backgroundColor: Colors.red),
       );
@@ -57,7 +59,9 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Etkinlikler')),
+      appBar: AppBar(title: Text('Etkinlikler', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        ))),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -75,7 +79,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -87,12 +91,12 @@ class _EventsScreenState extends State<EventsScreen> {
                                   children: [
                                     Text(
                                       event.name,
-                                      style: const TextStyle(
-                                        fontSize: 18,
+                                      style: TextStyle(
+                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
                                     Row(
                                       children: [
                                         Icon(Icons.location_on, size: 16, color: Colors.grey),
@@ -140,13 +144,13 @@ class _EventsScreenState extends State<EventsScreen> {
                             ],
                           ),
                           if (event.description.isNotEmpty) ...[
-                            const SizedBox(height: 12),
+                            SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
                             const Divider(),
                             const SizedBox(height: 8),
                             Text(
                               event.description,
-                              style: const TextStyle(
-                                fontSize: 14,
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                                 color: Colors.grey,
                               ),
                               maxLines: 3,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/ticket.dart';
+import '../services/api_service.dart';
 import '../services/event_service.dart';
+import '../utils/responsive_utils.dart';
+import 'dart:convert';
 
 class TicketsScreen extends StatefulWidget {
   const TicketsScreen({super.key});
@@ -41,7 +44,9 @@ class _TicketsScreenState extends State<TicketsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Biletlerim'),
+        title: Text('Biletlerim', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        )),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
@@ -79,7 +84,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(20),
+                                                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
                       itemCount: _tickets.length,
                       itemBuilder: (context, index) {
                         final ticket = _tickets[index];
@@ -94,7 +99,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                           ),
                           margin: const EdgeInsets.only(bottom: 16),
                           child: Padding(
-                            padding: const EdgeInsets.all(20),
+                            padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -142,7 +147,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),

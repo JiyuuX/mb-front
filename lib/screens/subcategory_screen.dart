@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/responsive_utils.dart';
 import 'product_list_screen.dart';
 
 class SubCategoryScreen extends StatelessWidget {
@@ -72,7 +73,9 @@ class SubCategoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text('${category['name']} Alt Kategorileri'),
+        title: Text('${category['name']} Alt Kategorileri', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        )),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
@@ -81,17 +84,17 @@ class SubCategoryScreen extends StatelessWidget {
       body: subcategories.isEmpty
           ? const Center(child: Text('Alt kategori bulunamadı'))
           : ListView.separated(
-              padding: const EdgeInsets.all(24),
+              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 24),
               itemCount: subcategories.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 18),
+              separatorBuilder: (_, __) => SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 18)),
               itemBuilder: (context, index) {
                 final subcat = subcategories[index];
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  contentPadding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, horizontal: 6, vertical: 1),
                   minLeadingWidth: 0,
                   leading: IconTheme(
                     data: IconThemeData(
-                      size: 16,
+                      size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     child: _subcategoryIcon(subcat['name'] ?? ''),
@@ -103,10 +106,10 @@ class SubCategoryScreen extends StatelessWidget {
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.w500,
-                      fontSize: 13,
+                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 13),
                     ),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onPrimary, size: 16),
+                  trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onPrimary, size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16)),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(

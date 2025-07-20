@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'product_list_screen.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/product_service.dart';
@@ -75,7 +76,9 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Kategori Seç'),
+        title: Text('Kategori Seç', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        )),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
@@ -83,68 +86,72 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
       ),
       body: _categories.isEmpty
           ? const Center(child: Text('Kategori bulunamadı'))
-          : GridView.builder(
-              padding: const EdgeInsets.all(8),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.8,
-                    ),
+          : ListView.builder(
+              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
               itemCount: _categories.length,
-                    itemBuilder: (context, index) {
+              itemBuilder: (context, index) {
                 final cat = _categories[index];
-                      return InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                        builder: (context) => SubCategoryScreen(
-                          category: cat,
-                        ),
+                return Container(
+                  margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 12),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => SubCategoryScreen(
+                              category: cat,
                             ),
-                          );
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.04),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
-                          ),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                        IconTheme(
-                          data: IconThemeData(
-                            size: 24,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                          child: _categoryIcon(cat['name'] ?? ''),
-                        ),
-                        const SizedBox(height: 6),
-                              Text(
-                          cat['name'] ?? '',
-                          textAlign: TextAlign.center,
+                              child: Icon(
+                                _categoryIcon(cat['name'] ?? '').icon,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24),
+                              ),
+                            ),
+                            SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                            Expanded(
+                              child: Text(
+                                cat['name'] ?? '',
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.1,
+                                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'dart:convert';
 import '../screens/chat_screen.dart'; // Added import for ChatScreen
 

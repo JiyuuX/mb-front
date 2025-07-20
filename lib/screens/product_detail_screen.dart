@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../utils/responsive_utils.dart';
 import 'product_form_screen.dart'; // Added import for ProductFormScreen
 import '../models/user.dart';
 import '../services/api_service.dart';
@@ -112,16 +113,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text(_product?.title ?? '', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+        title: Text(_product?.title ?? '', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
+          color: Theme.of(context).colorScheme.primary, 
+          fontWeight: FontWeight.bold
+        )),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.primary,
         elevation: 0,
         iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
         actions: [
           if (isOwner)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () async {
+                      IconButton(
+            icon: Icon(Icons.edit, size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)),
+            onPressed: () async {
                 final result = await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => ProductFormScreen(product: _product!),
@@ -135,6 +140,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           IconButton(
             icon: Icon(
               _product?.isFavorited == true ? Icons.favorite : Icons.favorite_border,
+              size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24),
               color: _product?.isFavorited == true ? Colors.red : null,
             ),
             onPressed: _toggleFavorite,
@@ -142,7 +148,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -153,8 +159,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
-                        width: 260,
-                        height: 260,
+                        width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 260),
+                        height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 260),
                         child: PageView.builder(
                           controller: _pageController,
                           itemCount: images.length,
@@ -167,10 +173,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             borderRadius: BorderRadius.circular(16),
                             child: Image.network(
                               images[idx],
-                              width: 260,
-                              height: 260,
+                              width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 260),
+                              height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 260),
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Icon(Icons.image_not_supported, size: 80, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                              errorBuilder: (context, error, stackTrace) => Icon(Icons.image_not_supported, size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 80), color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
                             ),
                           ),
                         ),
@@ -179,7 +185,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Positioned(
                           left: 0,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios),
+                            icon: Icon(Icons.arrow_back_ios, size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)),
                             color: Theme.of(context).colorScheme.primary,
                             onPressed: () => _goToPage(_currentPage - 1),
                           ),
@@ -188,7 +194,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Positioned(
                           right: 0,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_forward_ios),
+                            icon: Icon(Icons.arrow_forward_ios, size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)),
                             color: Theme.of(context).colorScheme.primary,
                             onPressed: () => _goToPage(_currentPage + 1),
                           ),
@@ -197,7 +203,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   // Dot indicator: always show, even if only one image
                   Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, top: 12),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(images.isNotEmpty ? images.length : 1, (idx) => Container(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
 import 'public_profile_screen.dart';
+import 'dart:convert';
 
 class FollowersFollowingListScreen extends StatefulWidget {
   final String username;
@@ -47,7 +49,9 @@ class _FollowersFollowingListScreenState extends State<FollowersFollowingListScr
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.showFollowers ? 'Takipçiler' : 'Takip Edilenler'),
+        title: Text(widget.showFollowers ? 'Takipçiler' : 'Takip Edilenler', style: TextStyle(
+          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
+        )),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

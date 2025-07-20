@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../services/forum_service.dart';
 import '../models/thread.dart';
 import '../models/user.dart';
+import '../utils/responsive_utils.dart';
 import 'thread_detail_screen.dart';
 import 'profile_screen.dart';
 import 'dart:convert';

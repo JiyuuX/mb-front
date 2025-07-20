@@ -4,6 +4,11 @@ import '../models/post.dart';
 import '../models/comment.dart';
 import '../services/forum_service.dart';
 import '../utils/app_theme.dart'; // Correct import for AppColors and AppTheme
+import '../models/user.dart';
+import '../services/api_service.dart';
+import '../utils/responsive_utils.dart';
+import 'public_profile_screen.dart';
+import 'dart:convert';
 
 class ThreadDetailScreen extends StatefulWidget {
   final Thread thread;
@@ -494,7 +499,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
           style: TextStyle(
             color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
           ),
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -514,7 +519,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -635,7 +640,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
