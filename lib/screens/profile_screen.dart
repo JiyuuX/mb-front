@@ -10,6 +10,8 @@ import 'login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'followers_following_list_screen.dart';
+import '../utils/app_theme.dart';
+import '../widgets/colored_username.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -237,6 +239,22 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
       if (image == null) return;
 
+      // GIF kontrolü
+      final isGif = image.name.toLowerCase().endsWith('.gif');
+      if (isGif && (_user == null || !_user!.isPremium)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Sadece Premium üyeler GIF profil resmine sahip olabilir.'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -295,22 +313,41 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         }
       } else {
         String errorMessage = 'Profil resmi güncellenirken hata oluştu.';
+        String errorType = '';
+        
         try {
           final data = json.decode(response.body);
           errorMessage = data['message'] ?? data['detail'] ?? errorMessage;
+          errorType = data['error'] ?? '';
         } catch (e) {
           print('Error parsing response: $e');
         }
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
+          // Profil fotoğrafı limit hatası için özel mesaj
+          if (errorType == 'PROFILE_PICTURE_LIMIT_EXCEEDED') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Gün içerisinde maksimum 2 kez profil fotoğrafı değiştirebilirsiniz.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: Duration(seconds: 4),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -495,8 +532,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                _user!.username,
+              ColoredUsername(
+                text: _user!.username,
+                colorHex: _user!.customUsernameColor,
+                isPremium: _user!.isPremium,
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -902,6 +941,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             onTap: _showImageSourceDialog,
           ),
           _buildDivider(),
+          if (_user!.isPremiumActive) ...[
+            _buildModernListTile(
+              Icons.palette,
+              'Kullanıcı Adı Rengi',
+              Colors.purple,
+              onTap: _showColorPickerDialog,
+            ),
+            _buildDivider(),
+          ],
           _buildModernListTile(
             Icons.edit,
             'Profili Düzenle',
@@ -927,6 +975,212 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             onTap: _logout,
           ),
         ],
+      ),
+    );
+  }
+
+  void _showColorPickerDialog() {
+    if (!_user!.isPremiumActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bu özellik sadece premium kullanıcılar için geçerlidir.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final List<Color> premiumColors = [
+      Colors.red,
+      Colors.orange,
+      Colors.yellow,
+      Colors.green,
+      Colors.blue,
+      Colors.indigo,
+      Colors.purple,
+      Colors.pink,
+      Colors.teal,
+      Colors.cyan,
+      Colors.lime,
+      Colors.amber,
+      Colors.deepOrange,
+      Colors.deepPurple,
+      Colors.lightBlue,
+      Colors.lightGreen,
+    ];
+
+    String selectedColor = _user!.customUsernameColor ?? '#000000';
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bgColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final onPrimary = Theme.of(context).colorScheme.onPrimary;
+          final destructive = isDark ? Colors.red : Colors.red;
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: bgColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Kullanıcı Adı Rengi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Kullanıcı adınızın platform genelinde görüneceği rengi seçin:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: premiumColors.map((color) {
+                      final hexColor = '#${color.value.toRadixString(16).substring(2)}';
+                      final isSelected = selectedColor.toUpperCase() == hexColor.toUpperCase();
+                      
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedColor = hexColor;
+                          });
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? primaryColor : Colors.transparent,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 24,
+                                )
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: destructive,
+                            side: BorderSide(color: destructive, width: 1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('İptal'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            if (selectedColor == _user!.customUsernameColor) {
+                              Navigator.of(context).pop();
+                              return;
+                            }
+                            
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            Navigator.of(context).pop();
+                            
+                            try {
+                              final response = await ApiService.post(
+                                '/users/update-username-color/',
+                                {'color': selectedColor},
+                              );
+                              
+                              if (response.statusCode == 200) {
+                                final data = json.decode(response.body);
+                                if (mounted) {
+                                  scaffoldMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(data['message']),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  await _loadUserProfile();
+                                }
+                              } else {
+                                final data = json.decode(response.body);
+                                if (mounted) {
+                                  scaffoldMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(data['message']),
+                                      backgroundColor: destructive,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Renk güncellenirken hata oluştu: $e'),
+                                    backgroundColor: destructive,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Kaydet', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

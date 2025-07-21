@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
 import 'chat_screen.dart';
 import 'dart:convert';
+import '../widgets/colored_username.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({Key? key}) : super(key: key);
@@ -83,7 +84,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         backgroundImage: otherUser.profilePicture != null ? NetworkImage(otherUser.profilePicture!) : null,
                         child: otherUser.profilePicture == null ? const Icon(Icons.person) : null,
                       ),
-                      title: Text(otherUser.fullName),
+                      title: ColoredUsername(
+                        text: otherUser.fullName,
+                        colorHex: otherUser.customUsernameColor,
+                        isPremium: otherUser.isPremium,
+                      ),
                       subtitle: conv.lastMessage != null
                           ? Text(
                               conv.lastMessage!.text ?? '[Medya]',

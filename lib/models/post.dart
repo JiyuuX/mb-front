@@ -1,7 +1,9 @@
+import 'user.dart';
+
 class Post {
   final int id;
   final int threadId;
-  final Map<String, dynamic> author;
+  final User author;
   final String content;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,7 +25,7 @@ class Post {
     return Post(
       id: json['id'],
       threadId: json['thread'],
-      author: json['author'] ?? {},
+      author: User.fromJson(json['author'] ?? {}),
       content: json['content'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
@@ -36,7 +38,7 @@ class Post {
     return {
       'id': id,
       'thread': threadId,
-      'author': author,
+      'author': author.toJson(),
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),

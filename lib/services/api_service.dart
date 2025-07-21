@@ -43,7 +43,7 @@ class ApiService {
     }
     
     // Varsayılan IP (Mac için)
-    return 'http://192.168.1.100:8000/api';
+    return 'http://192.168.1.105:8000/api';
   }
 
   // Ban handler

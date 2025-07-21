@@ -1,7 +1,9 @@
+import 'user.dart';
+
 class Thread {
   final int id;
   final String title;
-  final Map<String, dynamic> creator;
+  final User creator;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isPinned;
@@ -27,7 +29,7 @@ class Thread {
     return Thread(
       id: json['id'],
       title: json['title'],
-      creator: json['creator'] ?? {},
+      creator: User.fromJson(json['creator'] ?? {}),
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       isPinned: json['is_pinned'] ?? false,
@@ -42,7 +44,7 @@ class Thread {
     return {
       'id': id,
       'title': title,
-      'creator': creator,
+      'creator': creator.toJson(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_pinned': isPinned,

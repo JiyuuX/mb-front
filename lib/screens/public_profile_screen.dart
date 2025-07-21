@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
 import 'dart:convert';
 import '../screens/chat_screen.dart'; // Added import for ChatScreen
+import '../widgets/colored_username.dart';
 
 class PublicProfileScreen extends StatefulWidget {
   final String username;
@@ -106,8 +107,29 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
   }
 
+  Widget _buildUsernameText(String username, String? customColor) {
+    if (customColor != null && customColor.isNotEmpty) {
+      return Text(
+        username,
+        style: TextStyle(
+          color: Color(int.parse(customColor.replaceAll('#', '0xFF'))),
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      return Text(
+        username,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -144,10 +166,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text(_user!.username, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.primary,
+        title: ColoredUsername(text: _user!.username, colorHex: _user!.customUsernameColor),
+        backgroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: isDark ? Colors.black : Colors.white,
         elevation: 0,
+        iconTheme: IconThemeData(color: isDark ? Colors.black : Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -176,17 +199,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   const SizedBox(height: 16),
                   
                   // Name and Username
-                  Text(
-                    _user!.fullName,
+                  ColoredUsername(
+                    text: _user!.fullName,
+                    colorHex: _user!.customUsernameColor,
+                    isPremium: _user!.isPremium,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '@${_user!.username}',
+                  ColoredUsername(
+                    text: '@${_user!.username}',
+                    colorHex: _user!.customUsernameColor,
+                    isPremium: _user!.isPremium,
                     style: TextStyle(
                       fontSize: 16,
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),

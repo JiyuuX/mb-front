@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import 'dart:convert';
 import '../services/product_service.dart';
 import 'public_profile_screen.dart';
+import '../widgets/colored_username.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -353,15 +354,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
-                                Text(
-                                  _product?.seller['username'] ?? '-',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.primary,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
+                                ColoredUsername(text: _product?.seller['username'] ?? '-', colorHex: _product?.seller['custom_username_color']),
                               ],
                             ),
                           ),

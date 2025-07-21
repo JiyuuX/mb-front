@@ -68,8 +68,8 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
-      username: json['username'],
-      email: json['email'],
+      username: json['username'] ?? '',
+      email: json['email'] ?? '',
       firstName: json['first_name'],
       lastName: json['last_name'],
       isPremium: json['is_premium'] ?? false,
@@ -93,8 +93,8 @@ class User {
       followersCount: json['followers_count'] ?? 0,
       followingCount: json['following_count'] ?? 0,
       isFollowing: json['is_following'] ?? false,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
       threadCount: json['thread_count'],
       isBanned: json['is_banned'] ?? false,
       banReason: json['ban_reason'],

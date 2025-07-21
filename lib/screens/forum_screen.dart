@@ -8,6 +8,17 @@ import 'thread_detail_screen.dart';
 import 'profile_screen.dart';
 import 'dart:convert';
 import '../utils/app_theme.dart';
+import '../widgets/colored_username.dart';
+import 'public_profile_screen.dart';
+
+// Add report categories for dialog
+const List<Map<String, String>> reportCategories = [
+  {'value': 'spam', 'label': 'Spam'},
+  {'value': 'abuse', 'label': 'Hakaret/İftira'},
+  {'value': 'misinfo', 'label': 'Yanlış Bilgi'},
+  {'value': 'offtopic', 'label': 'Konu Dışı'},
+  {'value': 'other', 'label': 'Diğer'},
+];
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -330,6 +341,117 @@ class _ForumScreenState extends State<ForumScreen> {
     );
   }
 
+  Widget _buildUsernameText(String username, String? customColor, bool isPremium) {
+    return ColoredUsername(
+      text: username,
+      colorHex: customColor,
+      isPremium: isPremium,
+    );
+  }
+
+  void _showReportThreadDialog(Thread thread) {
+    String selectedCategory = reportCategories[0]['value']!;
+    final reasonController = TextEditingController();
+    final destructive = Theme.of(context).brightness == Brightness.dark ? AppTheme.darkDestructive : AppTheme.lightDestructive;
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('Thread Raporla', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Rapor Kategorisi', style: TextStyle(fontWeight: FontWeight.w500)),
+                  ...reportCategories.map((cat) => RadioListTile<String>(
+                    value: cat['value']!,
+                    groupValue: selectedCategory,
+                    onChanged: (val) => setState(() => selectedCategory = val!),
+                    title: Text(cat['label']!),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  )),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reasonController,
+                    decoration: InputDecoration(
+                      labelText: 'Açıklama (isteğe bağlı)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    minLines: 1,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: destructive,
+                            side: BorderSide(color: destructive, width: 1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('İptal'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            Navigator.of(context).pop();
+                            final result = await ForumService.reportThread(
+                              thread.id,
+                              selectedCategory,
+                              reasonController.text.trim(),
+                            );
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text(result['message'] ?? 'Rapor gönderildi.'),
+                                backgroundColor: result['success'] ? Colors.green : destructive,
+                              ),
+                            );
+                          },
+                          child: const Text('Gönder', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -556,12 +678,12 @@ class _ForumScreenState extends State<ForumScreen> {
                             },
                             leading: CircleAvatar(
                               backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                              backgroundImage: thread.creator['profile_picture'] != null
-                                  ? NetworkImage(thread.creator['profile_picture'])
+                              backgroundImage: thread.creator.profilePicture != null
+                                  ? NetworkImage(thread.creator.profilePicture!)
                                   : null,
-                              child: thread.creator['profile_picture'] == null
+                              child: thread.creator.profilePicture == null
                                   ? Text(
-                                      (thread.creator['username'] ?? 'A')[0].toUpperCase(),
+                                      (thread.creator.username.isNotEmpty ? thread.creator.username[0] : 'A').toUpperCase(),
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.bold,
@@ -606,9 +728,22 @@ class _ForumScreenState extends State<ForumScreen> {
                                   children: [
                                     Icon(Icons.person, size: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      thread.creator['username'] ?? '-',
-                                      style: TextStyle(color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                                    GestureDetector(
+                                      onTap: () {
+                                        final username = thread.creator.username;
+                                        if (username.isNotEmpty) {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => PublicProfileScreen(username: username),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: ColoredUsername(
+                                        text: thread.creator.username,
+                                        colorHex: thread.creator.customUsernameColor,
+                                        isPremium: thread.creator.isPremium,
+                                      ),
                                     ),
                                     const Spacer(),
                                     InkWell(
@@ -657,7 +792,17 @@ class _ForumScreenState extends State<ForumScreen> {
                                 ),
                               ],
                             ),
-                            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.flag, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                                  tooltip: 'Raporla',
+                                  onPressed: () => _showReportThreadDialog(thread),
+                                ),
+                                Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                              ],
+                            ),
                           ),
                         );
                       },

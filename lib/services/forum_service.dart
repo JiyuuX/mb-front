@@ -258,4 +258,88 @@ class ForumService {
       };
     }
   }
+
+  // Thread report işlemi
+  static Future<Map<String, dynamic>> reportThread(int threadId, String category, String reason) async {
+    try {
+      final response = await ApiService.post('/forum/threads/$threadId/report/', {
+        'category': category,
+        'reason': reason,
+      });
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Raporunuz alındı.'
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data['message'] is String ? data['message'] : data['message'].toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Rapor gönderme hatası: $e',
+      };
+    }
+  }
+
+  // Yorum report işlemi
+  static Future<Map<String, dynamic>> reportComment(int commentId, String category, String reason) async {
+    try {
+      final response = await ApiService.post('/forum/comments/$commentId/report/', {
+        'category': category,
+        'reason': reason,
+      });
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Raporunuz alındı.'
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data['message'] is String ? data['message'] : data['message'].toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Rapor gönderme hatası: $e',
+      };
+    }
+  }
+
+  // Post report işlemi
+  static Future<Map<String, dynamic>> reportPost(int postId, String category, String reason) async {
+    try {
+      final response = await ApiService.post('/forum/posts/$postId/report/', {
+        'category': category,
+        'reason': reason,
+      });
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Raporunuz alındı.'
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data['message'] is String ? data['message'] : data['message'].toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Rapor gönderme hatası: $e',
+      };
+    }
+  }
 } 

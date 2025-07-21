@@ -1,7 +1,9 @@
+import 'user.dart';
+
 class Comment {
   final int id;
   final int postId;
-  final Map<String, dynamic> author;
+  final User author;
   final String content;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -21,7 +23,7 @@ class Comment {
     return Comment(
       id: json['id'],
       postId: json['post'],
-      author: json['author'] ?? {},
+      author: User.fromJson(json['author'] ?? {}),
       content: json['content'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
@@ -33,7 +35,7 @@ class Comment {
     return {
       'id': id,
       'post': postId,
-      'author': author,
+      'author': author.toJson(),
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),

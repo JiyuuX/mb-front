@@ -268,48 +268,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                           ],
                         ),
-                        GestureDetector(
-                          onTap: () async {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                            );
-                            _loadUserProfile();
-                          },
-                          child: Container(
-                            margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
-                            width: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
-                            height: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.outline,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: _user?.profilePicture != null
-                                ? ClipOval(
-                                    child: Image.network(
-                                      _user!.profilePicture!,
-                                      width: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
-                                      height: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 56),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Icon(
-                                          Icons.person,
-                                          color: Theme.of(context).colorScheme.primary,
-                                          size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 32),
-                                        );
-                                      },
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.person,
-                                    color: Theme.of(context).colorScheme.primary,
-                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 32),
-                                  ),
+                        Padding(
+                          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
+                          child: GestureDetector(
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                              );
+                              _loadUserProfile();
+                            },
+                            child: _buildModernProfileAvatar(context),
                           ),
-                        ).animate().scale(duration: 300.ms),
+                        ),
                       ],
                     ),
 
@@ -790,5 +760,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     ).animate().fadeIn(delay: delay.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8));
+  }
+
+  Widget _buildModernProfileAvatar(BuildContext context) {
+    final double size = ResponsiveUtils.getResponsiveIconSize(context, baseSize: 48);
+    final double border = 3;
+    final bool isPremium = _user?.isPremium ?? false;
+    final String? profilePicture = _user?.profilePicture;
+    return Stack(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: isPremium
+                ? LinearGradient(colors: [Colors.amber, Colors.orange, Colors.deepOrange])
+                : LinearGradient(colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.7)]),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(border),
+            child: CircleAvatar(
+              radius: size / 2 - border,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundImage: profilePicture != null ? NetworkImage(profilePicture) : null,
+              child: profilePicture == null
+                  ? Icon(Icons.person, size: size * 0.55, color: Theme.of(context).colorScheme.primary.withOpacity(0.5))
+                  : null,
+            ),
+          ),
+        ),
+        if (isPremium)
+          Positioned(
+            bottom: 2,
+            right: 2,
+            child: Icon(Icons.star, color: Colors.amber, size: size * 0.28),
+          ),
+        Positioned(
+          bottom: 2,
+          left: 2,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+            child: Icon(Icons.edit, size: size * 0.20, color: Theme.of(context).colorScheme.primary),
+          ),
+        ),
+      ],
+    );
   }
 } 

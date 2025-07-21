@@ -7,6 +7,7 @@ import 'product_detail_screen.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
+import '../widgets/colored_username.dart';
 
 class MyStoreScreen extends StatefulWidget {
   const MyStoreScreen({super.key});

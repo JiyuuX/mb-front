@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../widgets/colored_username.dart';
 
 class ChatScreen extends StatefulWidget {
   final User otherUser;
@@ -187,115 +188,119 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Eğer yükleniyorsa sadece loading spinner göster
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: ColoredUsername(
+            text: widget.otherUser.fullName,
+            colorHex: widget.otherUser.customUsernameColor,
+            isPremium: widget.otherUser.isPremium,
+            style: TextStyle(
+              color: isDark ? Colors.black : Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    // Mesajlar yüklendikten sonra otomatik scroll down
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && _messages.isNotEmpty) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.otherUser.fullName, style: TextStyle(
-          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18)
-        )),
+        title: ColoredUsername(
+          text: widget.otherUser.fullName,
+          colorHex: widget.otherUser.customUsernameColor,
+          isPremium: widget.otherUser.isPremium,
+          style: TextStyle(
+            color: isDark ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (_isLoadingMore && index == _messages.length) {
+                  return Container(
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                }
+                final msg = _messages[index];
+                final isMe = msg.sender.id != widget.otherUser.id;
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8, vertical: 4),
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
+                          : Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: msg.text != null && msg.text!.isNotEmpty
+                        ? Text(
+                            msg.text!,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
+                            ),
+                          )
+                        : msg.mediaUrl != null
+                            ? Image.network(
+                                msg.mediaUrl!,
+                                width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 200),
+                                fit: BoxFit.cover,
+                              )
+                            : const Text('[Medya]'),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
+            child: Row(
               children: [
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (_isLoadingMore && index == _messages.length) {
-                        return Container(
-                          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Theme.of(context).colorScheme.primary,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        );
-                      }
-                      
-                      final msg = _messages[index];
-                      final isMe = msg.sender.id != widget.otherUser.id;
-                      
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8, vertical: 4),
-                          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                                : Theme.of(context).colorScheme.surfaceVariant,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: msg.text != null && msg.text!.isNotEmpty
-                              ? Text(
-                                  msg.text!,
-                                  style: TextStyle(
-                                    fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
-                                  ),
-                                )
-                              : msg.mediaUrl != null
-                                  ? Image.network(
-                                      msg.mediaUrl!,
-                                      width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 200),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const Text('[Medya]'),
-                        ),
-                      );
-                    },
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    decoration: const InputDecoration(
+                      hintText: 'Mesaj yaz...',
+                      border: InputBorder.none,
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                const Divider(height: 1),
-                Padding(
-                  padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 8),
-                  child: Row(
-                    children: [
-                      // Emoji button temporarily removed
-                      // IconButton(
-                      //   icon: Icon(_showEmojiPicker ? Icons.keyboard : Icons.emoji_emotions),
-                      //   onPressed: () {
-                      //     setState(() {
-                      //       _showEmojiPicker = !_showEmojiPicker;
-                      //     });
-                      //     if (_showEmojiPicker) {
-                      //       _focusNode.unfocus();
-                      //     }
-                      //   },
-                      // ),
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          decoration: const InputDecoration(
-                            hintText: 'Mesaj yaz...',
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
-                      ),
-                      IconButton(
-                        icon: _sending
-                            ? const CircularProgressIndicator()
-                            : const Icon(Icons.send),
-                        onPressed: _sending ? null : _sendMessage,
-                      ),
-                    ],
-                  ),
+                IconButton(
+                  icon: _sending
+                      ? const CircularProgressIndicator()
+                      : const Icon(Icons.send),
+                  onPressed: _sending ? null : _sendMessage,
                 ),
-                // Emoji picker temporarily removed
-                // if (_showEmojiPicker)
-                //   SizedBox(
-                //     height: 250,
-                //     child: EmojiPicker(
-                //       onEmojiSelected: (category, emoji) {
-                //         _controller.text += emoji.emoji;
-                //       },
-                //     ),
-                //   ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 } 
