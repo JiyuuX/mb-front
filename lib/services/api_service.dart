@@ -175,6 +175,11 @@ class ApiService {
     } catch (_) {}
   }
 
+  static Future<http.Response> getExternal(String url) async {
+    final response = await http.get(Uri.parse(url));
+    return response;
+  }
+
   // Public Profile Methods
   static Future<Map<String, dynamic>> getPublicProfile(String username) async {
     final response = await get('/users/public/$username/');
@@ -223,5 +228,96 @@ class ApiService {
   // Mark all messages in a conversation as read
   static Future<void> markConversationRead(int conversationId) async {
     await post('/chat/conversations/$conversationId/mark_read/', {});
+  }
+
+  static Future<List<dynamic>> fetchDiscountVenues({required String city, bool isPremium = true}) async {
+    final response = await get('/market/discount-venues/?city=${Uri.encodeComponent(city)}&is_premium=${isPremium ? 'true' : 'false'}');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        return data['venues'];
+      }
+    }
+    return [];
+  }
+
+  static Future<List<dynamic>> fetchAccommodations({required String city}) async {
+    final response = await get('/market/accommodations/?city=${Uri.encodeComponent(city)}');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        return data['accommodations'];
+      }
+    }
+    return [];
+  }
+
+  static Future<List<dynamic>> fetchUpcomingEvents() async {
+    final response = await get('/events/upcoming-events/');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is Map && data.containsKey('results')) {
+        return data['results'];
+      } else if (data is List) {
+        return data;
+      }
+    }
+    return [];
+  }
+
+  static Future<List<dynamic>> fetchHotThreads() async {
+    final response = await get('/forum/threads/hot/');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is List) {
+        return data;
+      }
+    }
+    return [];
+  }
+
+  static Future<List<dynamic>> fetchPopularUsers() async {
+    final response = await get('/users/popular-users/');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true && data['users'] != null) {
+        return data['users'];
+      }
+    }
+    return [];
+  }
+
+  static Future<Map<String, dynamic>?> fetchWeather({required String city}) async {
+    const apiKey = 'YOUR_OPENWEATHERMAP_API_KEY'; // TODO: Gerçek anahtar ile değiştir
+    final url = 'https://api.openweathermap.org/data/2.5/weather?q=${Uri.encodeComponent(city)}&appid=$apiKey&units=metric&lang=tr';
+    final response = await getExternal(url);
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> fetchWeatherByCoords({required double lat, required double lon}) async {
+    final url = 'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true';
+    final response = await getExternal(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['current_weather'] != null) {
+        return data['current_weather'];
+      }
+      return null;
+    }
+    return null;
+  }
+
+  static Future<String?> fetchDailySuggestion() async {
+    final response = await get('/news/daily-suggestion/');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true && data['suggestion'] != null) {
+        return data['suggestion']['text'];
+      }
+    }
+    return null;
   }
 } 

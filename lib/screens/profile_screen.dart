@@ -28,6 +28,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  String? _selectedUniversity;
+  List<String> _universityList = [];
+  bool _isUniversityLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -365,6 +369,79 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     }
   }
 
+  Future<void> _fetchUniversityList() async {
+    setState(() { _isUniversityLoading = true; });
+    try {
+      final response = await ApiService.get('/users/universities/');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _universityList = List<String>.from(data['universities']);
+        });
+      }
+    } catch (e) {
+      // ignore error
+    }
+    setState(() { _isUniversityLoading = false; });
+  }
+
+  void _showUniversityDialog() async {
+    await _fetchUniversityList();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Üniversite Seç'),
+          content: _isUniversityLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _universityList.length,
+                    itemBuilder: (context, index) {
+                      final uni = _universityList[index];
+                      return ListTile(
+                        title: Text(uni),
+                        selected: _user?.university == uni,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          _updateUniversity(uni);
+                        },
+                      );
+                    },
+                  ),
+                ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateUniversity(String university) async {
+    try {
+      final response = await ApiService.put(
+        '/users/profile/',
+        {'university': university},
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          _user = User.fromJson(json.decode(response.body));
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Üniversite güncellendi!'), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Üniversite güncellenemedi.'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -693,7 +770,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               Icons.calendar_today,
               Theme.of(context).colorScheme.secondary,
             ),
-            // Takipçi ve Takip info row'ları kaldırıldı
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernInfoRow(
+                    'Üniversite',
+                    _user!.university ?? 'Eklenmemiş',
+                    Icons.school,
+                    Colors.indigo,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.indigo),
+                  tooltip: 'Üniversiteyi Düzenle',
+                  onPressed: _showUniversityDialog,
+                ),
+              ],
+            ),
           ],
         ),
       ),

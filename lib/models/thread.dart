@@ -11,6 +11,8 @@ class Thread {
   final String category;
   final int likesCount;
   final bool isLiked;
+  final String forumType;
+  final String? university;
 
   Thread({
     required this.id,
@@ -23,6 +25,8 @@ class Thread {
     required this.category,
     required this.likesCount,
     required this.isLiked,
+    required this.forumType,
+    this.university,
   });
 
   factory Thread.fromJson(Map<String, dynamic> json) {
@@ -37,6 +41,8 @@ class Thread {
       category: json['category'] ?? 'genel',
       likesCount: json['likes_count'] ?? 0,
       isLiked: json['is_liked'] ?? false,
+      forumType: json['forum_type'] ?? 'genel',
+      university: json['university'],
     );
   }
 
@@ -52,6 +58,8 @@ class Thread {
       'category': category,
       'likes_count': likesCount,
       'is_liked': isLiked,
+      'forum_type': forumType,
+      'university': university,
     };
   }
 } 

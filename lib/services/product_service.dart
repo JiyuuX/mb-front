@@ -145,4 +145,15 @@ class ProductService {
       throw Exception('Kategori listesi alınamadı');
     }
   }
+
+  static Future<List<Product>> fetchFreeProducts() async {
+    final response = await ApiService.get('/market/products/?price=0');
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      final List<dynamic> items = data is List ? data : (data['results'] ?? []);
+      return items.map((item) => Product.fromJson(item)).toList();
+    } else {
+      throw Exception('Ücretsiz ürünler alınamadı');
+    }
+  }
 } 

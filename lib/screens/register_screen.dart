@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
-import '../utils/responsive_utils.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -101,7 +100,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: Text(
           'Kayıt Ol',
           style: GoogleFonts.inter(
-            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
@@ -114,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 24.0),
+            padding: const EdgeInsets.all(24.0),
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -125,7 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               child: Padding(
-                padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 24.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -133,36 +131,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Icon(
                         Icons.school,
-                        size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 60),
+                        size: 60,
                         color: Theme.of(context).colorScheme.primary,
                       ).animate().scale(duration: 600.ms),
-                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      const SizedBox(height: 16),
                       Text(
                         'HPGenc\'e Katıl',
                         style: GoogleFonts.inter(
-                          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 24),
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
-                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
+                      const SizedBox(height: 32),
 
                       // Ad alanı
                       TextFormField(
                         controller: _firstNameController,
                         style: GoogleFonts.inter(
-                          fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 16),
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                         decoration: InputDecoration(
                           labelText: 'Ad',
                           labelStyle: GoogleFonts.inter(
-                            fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           prefixIcon: Icon(
                             Icons.person,
-                            size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24),
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           border: OutlineInputBorder(
@@ -194,7 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           return null;
                         },
                       ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideX(begin: -0.3),
-                      SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
+                      const SizedBox(height: 16),
 
                       // Soyad alanı
                       TextFormField(

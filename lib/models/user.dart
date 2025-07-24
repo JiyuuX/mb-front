@@ -19,6 +19,8 @@ class User {
   final bool isBanned;
   final String? banReason;
   final DateTime? banUntil;
+  final String? university;
+  final String? city;
   // Social media fields
   final String? instagram;
   final String? twitter;
@@ -31,6 +33,9 @@ class User {
   final bool isFollowing;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int? popularity;
+  final int? threadLikes;
+  final int? newFollowers;
 
   User({
     required this.id,
@@ -63,6 +68,11 @@ class User {
     required this.isBanned,
     this.banReason,
     this.banUntil,
+    this.university,
+    this.city,
+    this.popularity,
+    this.threadLikes,
+    this.newFollowers,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -99,6 +109,11 @@ class User {
       isBanned: json['is_banned'] ?? false,
       banReason: json['ban_reason'],
       banUntil: json['ban_until'] != null ? DateTime.tryParse(json['ban_until']) : null,
+      university: json['university'],
+      city: json['city'],
+      popularity: json['popularity'] as int?,
+      threadLikes: json['thread_likes'] as int?,
+      newFollowers: json['new_followers'] as int?,
     );
   }
 
@@ -134,6 +149,11 @@ class User {
       'is_banned': isBanned,
       'ban_reason': banReason,
       'ban_until': banUntil?.toIso8601String(),
+      'university': university,
+      'city': city,
+      'popularity': popularity,
+      'thread_likes': threadLikes,
+      'new_followers': newFollowers,
     };
   }
 

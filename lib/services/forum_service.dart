@@ -259,6 +259,55 @@ class ForumService {
     }
   }
 
+  static Future<List<Thread>> getCampusForumThreads({required String university, required String forumType}) async {
+    try {
+      final response = await ApiService.get('/forum/threads/campus/?university=${Uri.encodeComponent(university)}&forum_type=$forumType');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['threads'] as List).map((thread) => Thread.fromJson(thread)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createCampusThread({
+    required String title,
+    required String category,
+    required String forumType,
+    required String university,
+  }) async {
+    try {
+      final response = await ApiService.post('/forum/threads/', {
+        'title': title,
+        'category': category,
+        'forum_type': forumType,
+        'university': university,
+      });
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': 'Konu başarıyla oluşturuldu.',
+          'thread': Thread.fromJson(data),
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data.toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Konu oluşturma hatası: $e',
+      };
+    }
+  }
+
   // Thread report işlemi
   static Future<Map<String, dynamic>> reportThread(int threadId, String category, String reason) async {
     try {
