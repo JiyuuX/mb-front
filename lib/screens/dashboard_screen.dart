@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/event.dart';
 import '../models/announcement.dart';
 import '../models/user.dart';
@@ -68,6 +69,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingPopularUsers = true;
   PageController? _eventPageController;
   int _eventPageIndex = 0;
+  // Kampüs popüler thread state
+  Thread? _campusPopularThread;
+  bool _isLoadingCampusPopularThread = true;
   // Timer? _eventAutoScrollTimer; // kaldırıldı
   // Türkiye il merkezleri (slug, ad, lat, lon)
   final List<Map<String, dynamic>> _turkeyCities = [
@@ -182,8 +186,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeDashboard();
+  }
+
+  Future<void> _initializeDashboard() async {
+    await _loadUserProfile();
+    await _loadCampusPopularThread();
     _loadDashboardData();
-    _loadUserProfile();
     _loadNews();
     _loadUnreadConversations();
     _determinePositionAndFetchWeather();
@@ -213,15 +222,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       print('DEBUG: Dashboard API response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _upcomingEvents = (data['upcoming_events'] as List)
-              .map((event) => Event.fromJson(event))
-              .toList();
-          _announcements = (data['announcements'] as List)
-              .map((announcement) => Announcement.fromJson(announcement))
-              .toList();
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _upcomingEvents = (data['upcoming_events'] as List)
+                .map((event) => Event.fromJson(event))
+                .toList();
+            _announcements = (data['announcements'] as List)
+                .map((announcement) => Announcement.fromJson(announcement))
+                .toList();
+            _isLoading = false;
+          });
+        }
         print('DEBUG: Upcoming events loaded: ${_upcomingEvents.length}');
         for (final e in _upcomingEvents) {
           print('DEBUG: Event: ${e.name}, city=${e.cityDisplay}, date=${e.date}');
@@ -229,10 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     } catch (e) {
       print('DEBUG: Error in _loadDashboardData: $e');
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Veri yüklenirken hata oluştu: $e'),
@@ -250,12 +261,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final response = await ApiService.get('/users/profile/');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _user = User.fromJson(data);
-        });
+        if (mounted) {
+          setState(() {
+            _user = User.fromJson(data);
+          });
+        }
       }
     } catch (e) {
       // Kullanıcı bilgileri yüklenemezse varsayılan ikon göster
+      print('User profile loading error: $e');
     }
   }
 
@@ -267,11 +281,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final data = json.decode(response.body);
         print('News API Data: $data');
         if (data['success']) {
-          setState(() {
-            _news = (data['news'] as List)
-                .map((news) => News.fromJson(news))
-                .toList();
-          });
+          if (mounted) {
+            setState(() {
+              _news = (data['news'] as List)
+                  .map((news) => News.fromJson(news))
+                  .toList();
+            });
+          }
           print('Haberler yüklendi: ${_news.length} haber');
         }
       }
@@ -285,13 +301,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final data = await ApiService.getUserConversations();
       final conversations = data.map((e) => Conversation.fromJson(e)).toList();
-      setState(() {
-        _unreadConversations = conversations.where((c) => (c.unreadCount ?? 0) > 0).length;
-      });
+      if (mounted) {
+        setState(() {
+          _unreadConversations = conversations.where((c) => (c.unreadCount ?? 0) > 0).length;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _unreadConversations = 0;
-      });
+      if (mounted) {
+        setState(() {
+          _unreadConversations = 0;
+        });
+      }
     }
   }
 
@@ -322,10 +342,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
     if (found != null) {
-      setState(() {
-        _weatherCityName = found!['name'];
-        _weatherCitySlug = found!['slug'];
-      });
+      if (mounted) {
+        setState(() {
+          _weatherCityName = found!['name'];
+          _weatherCitySlug = found!['slug'];
+        });
+      }
       print('DEBUG: City by bounding box: $_weatherCityName ($_weatherCitySlug)');
     } else {
       // Fallback: nearest city
@@ -338,10 +360,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           nearest = city;
         }
       }
-      setState(() {
-        _weatherCityName = nearest?['name'] ?? 'Bilinmiyor';
-        _weatherCitySlug = nearest?['slug'] ?? '';
-      });
+      if (mounted) {
+        setState(() {
+          _weatherCityName = nearest?['name'] ?? 'Bilinmiyor';
+          _weatherCitySlug = nearest?['slug'] ?? '';
+        });
+      }
       print('DEBUG: Fallback to nearest city: $_weatherCityName ($_weatherCitySlug)');
     }
   }
@@ -351,7 +375,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         print('DEBUG: Location services are disabled.');
-        setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+        if (mounted) {
+          setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+        }
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
@@ -359,26 +385,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           print('DEBUG: Location permission denied.');
-          setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+          if (mounted) {
+            setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+          }
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
         print('DEBUG: Location permission denied forever.');
-        setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+        if (mounted) {
+          setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+        }
         return;
       }
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       print('DEBUG: Position: lat=${position.latitude}, lon=${position.longitude}');
-      setState(() { _position = position; });
+      if (mounted) {
+        setState(() { _position = position; });
+      }
       _findCityByBoundingBox(position.latitude, position.longitude);
       final weather = await ApiService.fetchWeatherByCoords(lat: position.latitude, lon: position.longitude);
       print('DEBUG: Weather API response: $weather');
-      setState(() { _weather = weather; });
+      if (mounted) {
+        setState(() { _weather = weather; });
+      }
       await _loadDashboardData(citySlug: _weatherCitySlug);
     } catch (e) {
       print('DEBUG: Error in _determinePositionAndFetchWeather: $e');
-      setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+      if (mounted) {
+        setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+      }
     }
   }
 
@@ -409,22 +445,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadUpcomingEvents() async {
     setState(() { _isLoadingEvents = true; });
     final eventsJson = await ApiService.fetchUpcomingEvents();
-    setState(() {
-      _upcomingEvents = eventsJson.map((e) => Event.fromJson(e)).toList();
-      _isLoadingEvents = false;
-    });
+    if (mounted) {
+      setState(() {
+        _upcomingEvents = eventsJson.map((e) => Event.fromJson(e)).toList();
+        _isLoadingEvents = false;
+      });
+    }
   }
 
   Future<void> _loadPopularThread() async {
     setState(() { _isLoadingPopularThread = true; });
     final hotThreads = await ApiService.fetchHotThreads();
     if (hotThreads.isNotEmpty) {
-      setState(() {
-        _popularThread = Thread.fromJson(hotThreads[0]['thread']);
-        _isLoadingPopularThread = false;
-      });
+      // Sadece genel forumdan olanı al
+      final generalThread = hotThreads.firstWhere(
+        (t) => (t['thread']['forum_type'] == 'genel' && (t['thread']['university'] == null || t['thread']['university'] == '')),
+        orElse: () => null,
+      );
+      if (mounted) {
+        setState(() {
+          _popularThread = generalThread != null ? Thread.fromJson(generalThread['thread']) : null;
+          _isLoadingPopularThread = false;
+        });
+      }
     } else {
-      setState(() { _isLoadingPopularThread = false; });
+      if (mounted) {
+        setState(() { _isLoadingPopularThread = false; });
+      }
     }
   }
 
@@ -439,32 +486,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
       threads = await ForumService.getCampusForumThreads(university: city, forumType: 'genel');
     }
     if (threads.isNotEmpty) {
-      setState(() {
-        _localPopularThread = Thread.fromJson(threads[0]);
-        _isLoadingLocalPopularThread = false;
-      });
+      if (mounted) {
+        setState(() {
+          _localPopularThread = Thread.fromJson(threads[0]);
+          _isLoadingLocalPopularThread = false;
+        });
+      }
     } else {
-      setState(() { _isLoadingLocalPopularThread = false; });
+      if (mounted) {
+        setState(() { _isLoadingLocalPopularThread = false; });
+      }
     }
   }
 
   Future<void> _loadDailySuggestion() async {
     setState(() { _isLoadingSuggestion = true; });
     final suggestion = await ApiService.fetchDailySuggestion();
-    setState(() {
-      _dailySuggestion = suggestion;
-      _isLoadingSuggestion = false;
-    });
+    if (mounted) {
+      setState(() {
+        _dailySuggestion = suggestion;
+        _isLoadingSuggestion = false;
+      });
+    }
   }
 
   Future<void> _loadPopularUsers() async {
     setState(() { _isLoadingPopularUsers = true; });
     final usersJson = await ApiService.fetchPopularUsers();
     print('DEBUG: Popular users API response: ' + usersJson.toString());
-    setState(() {
-      _popularUsers = usersJson.map((u) => User.fromJson(u)).toList();
-      _isLoadingPopularUsers = false;
-    });
+    if (mounted) {
+      setState(() {
+        _popularUsers = usersJson.map((u) => User.fromJson(u)).toList();
+        _isLoadingPopularUsers = false;
+      });
+    }
+  }
+
+  Future<void> _loadCampusPopularThread() async {
+    setState(() { _isLoadingCampusPopularThread = true; });
+    print('DEBUG: Dashboard _user.university: ' + (_user?.university ?? 'null'));
+    if (_user == null || _user!.university == null || _user!.university!.isEmpty) {
+      print('DEBUG: Dashboard kullanıcı üniversite seçmemiş, kampüs threadi yüklenmeyecek.');
+      if (mounted) {
+        setState(() { _isLoadingCampusPopularThread = false; });
+      }
+      return;
+    }
+    final itirafThreads = await ForumService.getCampusForumThreads(university: _user!.university!, forumType: 'itiraf');
+    final yardimThreads = await ForumService.getCampusForumThreads(university: _user!.university!, forumType: 'yardim');
+    print('DEBUG: Dashboard itirafThreads: ${itirafThreads.length}, yardimThreads: ${yardimThreads.length}');
+    List<Thread> all = [...itirafThreads, ...yardimThreads];
+    if (all.isEmpty) {
+      print('DEBUG: Dashboard kampüs threadi yok.');
+      if (mounted) {
+        setState(() { _campusPopularThread = null; _isLoadingCampusPopularThread = false; });
+      }
+      return;
+    }
+    // En popüler thread: (likesCount*2 + commentCount) en yüksek olan
+    Thread? mostPopular;
+    int maxScore = -1;
+    for (final thread in all) {
+      int likeCount = thread.likesCount;
+      int commentCount = thread.commentCount ?? 0;
+      int score = likeCount * 2 + commentCount;
+      print('DEBUG: Dashboard campus thread: ${thread.title}, like: $likeCount, comment: $commentCount, score: $score');
+      if (score > maxScore) {
+        maxScore = score;
+        mostPopular = thread;
+      }
+    }
+    print('DEBUG: Dashboard seçilen kampüs popüler thread: ${mostPopular?.title ?? 'yok'}');
+    if (mounted) {
+      setState(() { _campusPopularThread = mostPopular; _isLoadingCampusPopularThread = false; });
+    }
   }
 
   @override
@@ -613,10 +708,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             icon: _buildModernProfileAvatar(context),
                             onSelected: (value) async {
                               if (value == 'profile') {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                              );
-                              _loadUserProfile();
+                                final result = await Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                                );
+                                await _loadUserProfile();
+                                await _loadCampusPopularThread();
                               } else if (value == 'store') {
                                 await Navigator.of(context).push(
                                   MaterialPageRoute(builder: (context) => const MyStoreScreen()),
@@ -717,69 +813,160 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
                           SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
                           
-                          // Responsive Grid Layout
-                          GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: 2,
-                            crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 16),
-                            mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, basePadding: 16),
-                            childAspectRatio: ResponsiveUtils.isSmallScreen(context) ? 0.8 : ResponsiveUtils.isMediumScreen(context) ? 1.0 : 1.3,
+                          // Compact 4x2 Grid Layout
+                          Column(
                             children: [
-                              _buildFeatureCard(
-                                icon: Icons.shopping_bag,
-                                title: '2.EL Satış',
-                                subtitle: 'Alışveriş',
-                                color: const Color(0xFF667eea),
-                                onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (context) => const ProductCategoryScreen()),
-                              );
-                            },
-                                delay: 600,
-                              ),
-                              _buildFeatureCard(
-                                icon: Icons.hotel,
-                                title: 'Konaklama',
-                                subtitle: 'Oteller & Pansiyonlar',
-                                color: Colors.teal,
-                                onTap: () {
-                                  // Konaklama ekranı yoksa placeholder göster
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text('Yakında'),
-                                      content: Text('Konaklama sayfası yakında eklenecek.'),
-                                      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
+                              // First Row - 4 cards
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildCompactFeatureCard(
+                                      icon: Icons.shopping_bag,
+                                      color: const Color(0xFF667eea),
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (context) => const ProductCategoryScreen()),
+                                        );
+                                      },
+                                      delay: 600,
                                     ),
-                              );
-                            },
-                                delay: 700,
+                                  ),
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        _buildCompactFeatureCard(
+                                          icon: Icons.hotel,
+                                          color: Colors.teal,
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: Text('Yakında'),
+                                                content: Text('Konaklama sayfası yakında eklenecek.'),
+                                                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
+                                              ),
+                                            );
+                                          },
+                                          delay: 700,
+                                        ),
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 2,
+                                                  offset: Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              'Yakında',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(
+                                    child: _buildCompactFeatureCard(
+                                      icon: Icons.event,
+                                      color: Colors.green,
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (context) => const EventsScreen()),
+                                        );
+                                      },
+                                      delay: 800,
+                                    ),
+                                  ),
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(
+                                    child: _buildCompactFeatureCard(
+                                      icon: Icons.favorite,
+                                      color: Colors.red,
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (context) => const FavoritesScreen()),
+                                        );
+                                      },
+                                      delay: 900,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              _buildFeatureCard(
-                                icon: Icons.event,
-                                title: 'Etkinlikler',
-                                subtitle: 'Katıl & Keşfet',
-                                color: Colors.green,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (context) => const EventsScreen()),
-                                  );
-                                },
-                                delay: 800,
+                              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                              // Second Row - 1 card (car rental)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        _buildCompactFeatureCard(
+                                          icon: Icons.directions_car,
+                                          color: Colors.orange,
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: Text('Yakında'),
+                                                content: Text('Araba kiralama sayfası yakında eklenecek.'),
+                                                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
+                                              ),
+                                            );
+                                          },
+                                          delay: 1000,
+                                        ),
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 2,
+                                                  offset: Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              'Yakında',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Empty space for the remaining 3 slots
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(child: SizedBox()),
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(child: SizedBox()),
+                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+                                  Expanded(child: SizedBox()),
+                                ],
                               ),
-                              _buildFeatureCard(
-                                icon: Icons.favorite,
-                                title: 'Favorilerim',
-                                subtitle: 'Beğenilenler',
-                                color: Colors.red,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (context) => const FavoritesScreen()),
-                                  );
-                                },
-                                delay: 900,
-                                ),
                             ],
                           ),
                           SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
@@ -907,28 +1094,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ],
                           SizedBox(height: 16),
+                          // Popüler threadler
                           if (_popularThread != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4.0, top: 8.0),
+                              child: Text('Genel Forumda En Popüler Thread', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.primary)),
+                            ),
                             Card(
-                              margin: EdgeInsets.symmetric(vertical: 8),
+                              margin: EdgeInsets.symmetric(vertical: 4),
                               child: ListTile(
                                 leading: Icon(Icons.whatshot, color: Colors.orange),
-                                title: Text('Genel Forumda En Popüler Thread'),
-                                subtitle: Text(_popularThread!.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                title: Text(_popularThread!.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                                 onTap: () {
                                   Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThreadDetailScreen(thread: _popularThread!)));
                                 },
                               ),
                             ),
                           ],
-                          if (_localPopularThread != null && _weather != null && _weather!['name'] != null) ...[
+                          if (_user != null && _user!.university != null && _user!.university!.isNotEmpty && !_isLoadingCampusPopularThread && _campusPopularThread != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4.0, top: 16.0),
+                              child: Text('Kampüste En Popüler Thread', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).colorScheme.primary)),
+                            ),
                             Card(
-                              margin: EdgeInsets.symmetric(vertical: 8),
+                              margin: EdgeInsets.symmetric(vertical: 4),
                               child: ListTile(
-                                leading: Icon(Icons.location_on, color: Colors.blue),
-                                title: Text('[${_weather!['name']}] Forumda En Popüler Thread'),
-                                subtitle: Text(_localPopularThread!.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                leading: Icon(Icons.school, color: Colors.blue),
+                                title: Text(_campusPopularThread!.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                                 onTap: () {
-                                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThreadDetailScreen(thread: _localPopularThread!)));
+                                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThreadDetailScreen(thread: _campusPopularThread!)));
                                 },
                               ),
                             ),
@@ -1167,6 +1361,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 textAlign: TextAlign.center,
               ),
             ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: delay.ms, duration: 600.ms).scale(begin: const Offset(0.8, 0.8));
+  }
+
+  Widget _buildCompactFeatureCard({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required int delay,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          height: ResponsiveUtils.getResponsiveCardHeight(context, baseHeight: 60),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color,
+                color.withOpacity(0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24),
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -1418,13 +1655,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-          child: CircleAvatar(
-            radius: size / 2,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            backgroundImage: profilePicture != null ? NetworkImage(profilePicture) : null,
-            child: profilePicture == null
-                ? Icon(Icons.person, size: size * 0.55, color: Theme.of(context).colorScheme.primary.withOpacity(0.5))
-                : null,
+          child: Padding(
+            padding: EdgeInsets.all(border),
+            child: CircleAvatar(
+              radius: size / 2 - border,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundImage: profilePicture != null ? NetworkImage(profilePicture) : null,
+              onBackgroundImageError: (exception, stackTrace) {
+                // Handle image loading errors silently
+                print('Profile image loading error: $exception');
+              },
+              child: profilePicture == null
+                  ? Icon(Icons.person, size: size * 0.55, color: Theme.of(context).colorScheme.primary.withOpacity(0.5))
+                  : null,
+            ),
           ),
         ),
         if (isPremium)
@@ -1483,27 +1727,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildProfileAvatar(String? url, {bool isPremium = false, double radius = 24}) {
     final fullUrl = getFullImageUrl(url);
-    if (fullUrl.isNotEmpty && fullUrl.toLowerCase().endsWith('.gif')) {
-      return ClipOval(
-        child: Image.network(
-          fullUrl,
-          width: radius * 2,
-          height: radius * 2,
-          fit: BoxFit.cover,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stackTrace) => CircleAvatar(
-            radius: radius,
-            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-            child: Icon(Icons.person, size: radius, color: Theme.of(context).colorScheme.primary),
-          ),
-        ),
-      );
-    } else if (fullUrl.isNotEmpty) {
+    if (fullUrl.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
         backgroundImage: NetworkImage(fullUrl),
         backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (exception, stackTrace) {
+          // Handle image loading errors silently
+          print('Profile avatar loading error: $exception');
+        },
         child: null,
       );
     } else {

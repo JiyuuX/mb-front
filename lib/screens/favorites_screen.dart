@@ -223,6 +223,27 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                                   ),
                                                 ],
                                               ),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.location_on, 
+                                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 14), 
+                                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.7)
+                                                  ),
+                                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 2)),
+                                                  Flexible(
+                                                    child: Text(
+                                                      product.city ?? 'Bilinmeyen',
+                                                      style: TextStyle(
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                                        fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12),
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ],
                                           ),
                                           SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),

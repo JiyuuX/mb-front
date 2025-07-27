@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -66,10 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       final response = await ApiService.get('/users/profile/');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('DEBUG: ProfileScreen loaded user profile: ' + data.toString());
         setState(() {
           _user = User.fromJson(data);
           _isLoading = false;
         });
+        print('DEBUG: ProfileScreen _user.university: ' + (_user?.university ?? 'null'));
         _fadeController.forward();
         _slideController.forward();
       }
@@ -424,8 +427,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         {'university': university},
       );
       if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('DEBUG: ProfileScreen updated university: ' + (data['university'] ?? 'null'));
         setState(() {
-          _user = User.fromJson(json.decode(response.body));
+          _user = User.fromJson(data);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Üniversite güncellendi!'), backgroundColor: Colors.green),
@@ -571,6 +576,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             backgroundImage: _user!.profilePicture != null
                                 ? NetworkImage(_user!.profilePicture!)
                                 : null,
+                            onBackgroundImageError: (exception, stackTrace) {
+                              // Handle image loading errors silently
+                              print('Profile image loading error: $exception');
+                            },
                             child: _user!.profilePicture == null
                                 ? Icon(
                                     Icons.person,

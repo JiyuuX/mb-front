@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/thread.dart';
 import '../models/post.dart';
 import '../models/comment.dart';
@@ -788,6 +789,10 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                             backgroundImage: post.author.profilePicture != null
                                                 ? NetworkImage(post.author.profilePicture!)
                                                 : null,
+                                            onBackgroundImageError: (exception, stackTrace) {
+                                              // Handle image loading errors silently
+                                              print('Profile image loading error: $exception');
+                                            },
                                             child: post.author.profilePicture == null
                                                 ? Text(
                                                     (post.author.username.isNotEmpty ? post.author.username[0] : 'A').toUpperCase(),
@@ -957,6 +962,10 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                                     backgroundImage: comment.author.profilePicture != null
                                                         ? NetworkImage(comment.author.profilePicture!)
                                                         : null,
+                                                    onBackgroundImageError: (exception, stackTrace) {
+                                                      // Handle image loading errors silently
+                                                      print('Profile image loading error: $exception');
+                                                    },
                                                     child: comment.author.profilePicture == null
                                                         ? Text(
                                                             (comment.author.username.isNotEmpty ? comment.author.username[0] : 'A').toUpperCase(),

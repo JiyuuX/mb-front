@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
@@ -82,6 +83,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundImage: otherUser.profilePicture != null ? NetworkImage(otherUser.profilePicture!) : null,
+                        onBackgroundImageError: (exception, stackTrace) {
+                          // Handle image loading errors silently
+                          print('Profile image loading error: $exception');
+                        },
                         child: otherUser.profilePicture == null ? const Icon(Icons.person) : null,
                       ),
                       title: ColoredUsername(

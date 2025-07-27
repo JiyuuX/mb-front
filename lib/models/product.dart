@@ -8,6 +8,7 @@ class Product {
   final int? category;
   final int? subcategory;
   final String status;
+  final String? city;
   final DateTime createdAt;
   final Map<String, dynamic>? categoryDetail;
   final Map<String, dynamic>? subcategoryDetail;
@@ -24,6 +25,7 @@ class Product {
     this.category,
     this.subcategory,
     required this.status,
+    this.city,
     required this.createdAt,
     this.categoryDetail,
     this.subcategoryDetail,
@@ -48,6 +50,7 @@ class Product {
       category: json['category'] is int ? json['category'] : int.tryParse(json['category'].toString()),
       subcategory: json['subcategory'] is int ? json['subcategory'] : int.tryParse(json['subcategory']?.toString() ?? ''),
       status: json['status'],
+      city: json['city'],
       createdAt: DateTime.parse(json['created_at']),
       categoryDetail: json['category_detail'],
       subcategoryDetail: json['subcategory_detail'],
@@ -67,6 +70,7 @@ class Product {
       'category': category,
       'subcategory': subcategory,
       'status': status,
+      'city': city,
       'created_at': createdAt.toIso8601String(),
       'category_detail': categoryDetail,
       'subcategory_detail': subcategoryDetail,

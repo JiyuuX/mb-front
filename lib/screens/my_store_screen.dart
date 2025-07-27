@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../utils/responsive_utils.dart';
@@ -29,14 +30,21 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
     _loadProducts();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadUser() async {
     try {
       final response = await ApiService.get('/users/profile/');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _user = User.fromJson(data);
-        });
+        if (mounted) {
+          setState(() {
+            _user = User.fromJson(data);
+          });
+        }
       }
     } catch (e) {
       print('Kullanıcı yükleme hatası: $e');
@@ -48,8 +56,8 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
     try {
       final response = await ApiService.post('/users/actions/activate_secondhand_seller/', {});
       if (response.statusCode == 200) {
-        await _loadUser();
         if (mounted) {
+          await _loadUser();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('2. el satıcı badge aktif edildi!'), backgroundColor: Colors.green),
           );
@@ -68,7 +76,9 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
         );
       }
     } finally {
-      setState(() { _badgeLoading = false; });
+      if (mounted) {
+        setState(() { _badgeLoading = false; });
+      }
     }
   }
 
@@ -76,13 +86,15 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
     setState(() { _isLoading = true; });
     try {
       final products = await ProductService.fetchMyProducts();
-      setState(() {
-        _products = products;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() { _isLoading = false; });
       if (mounted) {
+        setState(() {
+          _products = products;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() { _isLoading = false; });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ürünler yüklenemedi: $e'), backgroundColor: Colors.red),
         );
@@ -93,8 +105,8 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
   Future<void> _deleteProduct(int id) async {
     try {
       await ProductService.deleteProduct(id);
-      _loadProducts();
       if (mounted) {
+        _loadProducts();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Ürün silindi.'), backgroundColor: Colors.green),
         );
@@ -220,16 +232,32 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
                                         ClipRRect(
                                             borderRadius: BorderRadius.circular(8),
                                           child: product.imageUrl != null
-                                              ? Image.network(
-                                                  product.imageUrl!,
+                                              ? CachedNetworkImage(
+                                                  imageUrl: product.imageUrl!,
                                                     width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
                                                     height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
                                                   fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) => Icon(
-                                                      Icons.image_not_supported, 
-                                                      size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)
+                                                    placeholder: (context, url) => Container(
+                                                      width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                                      height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                                      child: Center(
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      ),
                                                     ),
-                                                )
+                                                    errorWidget: (context, url, error) => Container(
+                                                      width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                                      height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                                      child: Icon(
+                                                        Icons.image_not_supported, 
+                                                        size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24),
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                                      ),
+                                                    ),
+                                                  )
                                               : Container(
                                                     width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
                                                     height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
@@ -298,6 +326,27 @@ class _MyStoreScreenState extends State<MyStoreScreen> {
                                                         Flexible(
                                                           child: Text(
                                                             product.categoryDetail?['name'] ?? '', 
+                                                            style: TextStyle(
+                                                              color: Theme.of(context).colorScheme.primary.withOpacity(0.7), 
+                                                              fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12)
+                                                            ),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.location_on, 
+                                                          size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 14), 
+                                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.7)
+                                                        ),
+                                                        SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 2)),
+                                                        Flexible(
+                                                          child: Text(
+                                                            product.city ?? 'Bilinmeyen', 
                                                             style: TextStyle(
                                                               color: Theme.of(context).colorScheme.primary.withOpacity(0.7), 
                                                               fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 12)

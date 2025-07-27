@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
@@ -170,8 +171,12 @@ class _FollowersFollowingListScreenState extends State<FollowersFollowingListScr
                           radius: 24,
                           backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                           backgroundImage: user.profilePicture != null
-                              ? NetworkImage(user.profilePicture!)
-                              : null,
+                               ? NetworkImage(user.profilePicture!)
+                               : null,
+                          onBackgroundImageError: (exception, stackTrace) {
+                            // Handle image loading errors silently
+                            print('Profile image loading error: $exception');
+                          },
                           child: user.profilePicture == null
                               ? Text(
                                   user.username[0].toUpperCase(),

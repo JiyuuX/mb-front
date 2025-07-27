@@ -156,4 +156,26 @@ class ProductService {
       throw Exception('Ücretsiz ürünler alınamadı');
     }
   }
+
+  static Future<Map<String, dynamic>> fetchAllProducts({int page = 1, String search = ''}) async {
+    String url = '/market/all-products/?page=$page';
+    if (search.isNotEmpty) {
+      url += '&search=${Uri.encodeComponent(search)}';
+    }
+    
+    final response = await ApiService.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      final List<dynamic> productsData = data['products'] ?? [];
+      final List<Product> products = productsData.map((item) => Product.fromJson(item)).toList();
+      
+      return {
+        'products': products,
+        'pagination': data['pagination'] ?? {},
+        'success': data['success'] ?? false,
+      };
+    } else {
+      throw Exception('Tüm ürünler alınamadı');
+    }
+  }
 } 

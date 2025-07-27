@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
 import '../utils/responsive_utils.dart';
 import 'product_form_screen.dart'; // Added import for ProductFormScreen
@@ -266,6 +267,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(width: 8),
                         Text(_product?.categoryDetail?['name'] ?? '', style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7))),
                         const SizedBox(width: 18),
+                        Icon(Icons.location_on, size: 20, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                        const SizedBox(width: 8),
+                        Text(_product?.city ?? 'Bilinmeyen', style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7))),
+                        const SizedBox(width: 18),
                         Icon(Icons.check_circle, size: 20, color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
                         const SizedBox(width: 8),
                         Text(_product?.status == 'new' ? 'Yeni' : '2. El', style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.primary.withOpacity(0.7))),
@@ -302,9 +307,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               }
                             },
                             child: CircleAvatar(
-                              radius: 20,
-                              backgroundImage: NetworkImage(_product!.seller['profile_picture']),
-                            ),
+                                radius: 20,
+                                backgroundImage: NetworkImage(_product!.seller['profile_picture']),
+                                onBackgroundImageError: (exception, stackTrace) {
+                                  // Handle image loading errors silently
+                                  print('Seller profile image loading error: $exception');
+                                },
+                              ),
                           )
                         else
                           GestureDetector(

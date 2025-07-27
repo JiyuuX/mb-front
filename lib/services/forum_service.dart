@@ -13,7 +13,10 @@ class ForumService {
         final data = json.decode(response.body);
         return {
           'success': true,
-          'threads': (data['results'] as List).map((thread) => Thread.fromJson(thread)).toList(),
+          'threads': (data['results'] as List)
+              .map((thread) => Thread.fromJson(thread))
+              .where((t) => t.forumType == 'genel' && (t.university == null || t.university!.isEmpty))
+              .toList(),
         };
       } else {
         return {
@@ -264,7 +267,13 @@ class ForumService {
       final response = await ApiService.get('/forum/threads/campus/?university=${Uri.encodeComponent(university)}&forum_type=$forumType');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return (data['threads'] as List).map((thread) => Thread.fromJson(thread)).toList();
+        return (data['threads'] as List).map((thread) {
+          final t = Thread.fromJson(thread);
+          // like_count ve comment_count varsa Thread objesine ekle (gerekirse Thread modelini güncelle)
+          if (thread['like_count'] != null) t.likesCount = thread['like_count'];
+          if (thread['comment_count'] != null) t.commentCount = thread['comment_count'];
+          return t;
+        }).toList();
       } else {
         return [];
       }
