@@ -313,6 +313,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   // Handle image loading errors silently
                                   print('Seller profile image loading error: $exception');
                                 },
+                                child: null,
                               ),
                           )
                         else

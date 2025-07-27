@@ -302,20 +302,22 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                               );
                             }
                           },
-                          child: CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            backgroundImage: product.seller['profile_picture'] != null
-                                ? NetworkImage(product.seller['profile_picture'])
-                                : null,
-                            child: product.seller['profile_picture'] == null
-                                ? Icon(
+                          child: (product.seller['profile_picture'] != null && product.seller['profile_picture'].isNotEmpty)
+                              ? CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                  backgroundImage: NetworkImage(product.seller['profile_picture']),
+                                  child: null,
+                                )
+                              : CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                  child: Icon(
                                     Icons.person,
                                     size: 14,
                                     color: Theme.of(context).colorScheme.primary,
-                                  )
-                                : null,
-                          ),
+                                  ),
+                                ),
                         ),
                         SizedBox(width: 6),
                         // Satıcı kullanıcı adı

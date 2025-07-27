@@ -182,20 +182,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               child: Column(
                 children: [
                   // Profile Picture
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    backgroundImage: _user!.profilePicture != null 
-                        ? NetworkImage(_user!.profilePicture!)
-                        : null,
-                    child: _user!.profilePicture == null
-                        ? Icon(
+                  (_user!.profilePicture != null && _user!.profilePicture!.isNotEmpty)
+                      ? CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          backgroundImage: NetworkImage(_user!.profilePicture!),
+                          child: null,
+                        )
+                      : CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          child: Icon(
                             Icons.person,
                             size: 60,
                             color: Theme.of(context).colorScheme.primary,
-                          )
-                        : null,
-                  ),
+                          ),
+                        ),
                   const SizedBox(height: 16),
                   
                   // Name and Username

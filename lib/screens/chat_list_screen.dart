@@ -81,14 +81,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       orElse: () => conv.participants.first,
                     );
                     return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: otherUser.profilePicture != null ? NetworkImage(otherUser.profilePicture!) : null,
-                        onBackgroundImageError: (exception, stackTrace) {
-                          // Handle image loading errors silently
-                          print('Profile image loading error: $exception');
-                        },
-                        child: otherUser.profilePicture == null ? const Icon(Icons.person) : null,
-                      ),
+                      leading: (otherUser.profilePicture != null && otherUser.profilePicture!.isNotEmpty)
+                          ? CircleAvatar(
+                              backgroundImage: NetworkImage(otherUser.profilePicture!),
+                              onBackgroundImageError: (exception, stackTrace) {
+                                // Handle image loading errors silently
+                                print('Profile image loading error: $exception');
+                              },
+                              child: null,
+                            )
+                          : CircleAvatar(
+                              child: const Icon(Icons.person),
+                            ),
                       title: ColoredUsername(
                         text: otherUser.fullName,
                         colorHex: otherUser.customUsernameColor,

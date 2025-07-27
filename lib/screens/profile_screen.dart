@@ -570,24 +570,26 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       ),
                       child: Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                            backgroundImage: _user!.profilePicture != null
-                                ? NetworkImage(_user!.profilePicture!)
-                                : null,
-                            onBackgroundImageError: (exception, stackTrace) {
-                              // Handle image loading errors silently
-                              print('Profile image loading error: $exception');
-                            },
-                            child: _user!.profilePicture == null
-                                ? Icon(
+                          (_user!.profilePicture != null && _user!.profilePicture!.isNotEmpty)
+                              ? CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                                  backgroundImage: NetworkImage(_user!.profilePicture!),
+                                  onBackgroundImageError: (exception, stackTrace) {
+                                    // Handle image loading errors silently
+                                    print('Profile image loading error: $exception');
+                                  },
+                                  child: null,
+                                )
+                              : CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                                  child: Icon(
                                     Icons.person,
                                     size: 60,
                                     color: Theme.of(context).colorScheme.primary,
-                                  )
-                                : null,
-                          ),
+                                  ),
+                                ),
                           Positioned(
                             bottom: 0,
                             right: 0,

@@ -167,26 +167,28 @@ class _FollowersFollowingListScreenState extends State<FollowersFollowingListScr
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          backgroundImage: user.profilePicture != null
-                               ? NetworkImage(user.profilePicture!)
-                               : null,
-                          onBackgroundImageError: (exception, stackTrace) {
-                            // Handle image loading errors silently
-                            print('Profile image loading error: $exception');
-                          },
-                          child: user.profilePicture == null
-                              ? Text(
+                        leading: (user.profilePicture != null && user.profilePicture!.isNotEmpty)
+                            ? CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                backgroundImage: NetworkImage(user.profilePicture!),
+                                onBackgroundImageError: (exception, stackTrace) {
+                                  // Handle image loading errors silently
+                                  print('Profile image loading error: $exception');
+                                },
+                                child: null,
+                              )
+                            : CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                child: Text(
                                   user.username[0].toUpperCase(),
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
-                                )
-                              : null,
-                        ),
+                                ),
+                              ),
                         title: ColoredUsername(
                           text: user.username,
                           colorHex: user.customUsernameColor,

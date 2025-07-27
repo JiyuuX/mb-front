@@ -498,7 +498,7 @@ class _ForumScreenState extends State<ForumScreen> {
                 shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
               ),
-              child: _user?.profilePicture != null
+              child: (_user?.profilePicture != null && _user!.profilePicture!.isNotEmpty)
                   ? CircleAvatar(
                       radius: 16,
                       backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
@@ -507,11 +507,7 @@ class _ForumScreenState extends State<ForumScreen> {
                         // Handle image loading errors silently
                         print('Profile image loading error: $exception');
                       },
-                      child: Icon(
-                        Icons.person,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
+                      child: null,
                     )
                   : Icon(
                       Icons.person,
@@ -691,25 +687,26 @@ class _ForumScreenState extends State<ForumScreen> {
                                 ),
                               );
                             },
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                              backgroundImage: thread.creator.profilePicture != null
-                                  ? NetworkImage(thread.creator.profilePicture!)
-                                  : null,
-                              onBackgroundImageError: (exception, stackTrace) {
-                                // Handle image loading errors silently
-                                print('Profile image loading error: $exception');
-                              },
-                              child: thread.creator.profilePicture == null
-                                  ? Text(
+                            leading: (thread.creator.profilePicture != null && thread.creator.profilePicture!.isNotEmpty)
+                                ? CircleAvatar(
+                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                    backgroundImage: NetworkImage(thread.creator.profilePicture!),
+                                    onBackgroundImageError: (exception, stackTrace) {
+                                      // Handle image loading errors silently
+                                      print('Profile image loading error: $exception');
+                                    },
+                                    child: null,
+                                  )
+                                : CircleAvatar(
+                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                    child: Text(
                                       (thread.creator.username.isNotEmpty ? thread.creator.username[0] : 'A').toUpperCase(),
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                    )
-                                  : null,
-                            ),
+                                    ),
+                                  ),
                             title: Row(
                               children: [
                                 Expanded(
