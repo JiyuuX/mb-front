@@ -1660,12 +1660,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: CircleAvatar(
               radius: size / 2 - border,
               backgroundColor: Theme.of(context).colorScheme.surface,
-              backgroundImage: profilePicture != null ? NetworkImage(profilePicture) : null,
+              backgroundImage: profilePicture != null && profilePicture.isNotEmpty ? NetworkImage(profilePicture) : null,
               onBackgroundImageError: (exception, stackTrace) {
                 // Handle image loading errors silently
                 print('Profile image loading error: $exception');
               },
-              child: profilePicture == null
+              child: profilePicture == null || profilePicture.isEmpty
                   ? Icon(Icons.person, size: size * 0.55, color: Theme.of(context).colorScheme.primary.withOpacity(0.5))
                   : null,
             ),
@@ -1736,7 +1736,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Handle image loading errors silently
           print('Profile avatar loading error: $exception');
         },
-        child: null,
+        child: Icon(Icons.person, size: radius, color: Theme.of(context).colorScheme.primary),
       );
     } else {
       return CircleAvatar(
