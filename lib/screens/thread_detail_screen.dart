@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/thread.dart';
 import '../models/post.dart';
@@ -28,6 +29,8 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
   Map<int, bool> _hasMoreComments = {};
   Map<int, int> _commentPage = {};
   Map<int, bool> _commentsExpanded = {};
+  Map<int, bool> _postContentExpanded = {};
+  Map<int, bool> _commentContentExpanded = {};
   bool _isLoading = true;
   User? _currentUser;
 
@@ -105,7 +108,9 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
       final result = await ForumService.getComments(postId, page: nextPage);
       if (result['success']) {
         setState(() {
-          _comments[postId] = [...(_comments[postId] ?? []), ...result['comments']];
+          // Append new comments to existing ones instead of replacing
+          final existingComments = _comments[postId] ?? [];
+          _comments[postId] = [...existingComments, ...result['comments']];
           _commentsLoading[postId] = false;
           _hasMoreComments[postId] = result['hasNext'] ?? false;
           _commentPage[postId] = nextPage;
@@ -186,68 +191,97 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
 
   void _showCreatePostDialog() {
     final contentController = TextEditingController();
+    const int maxLength = 2000;
 
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = Theme.of(context).colorScheme.surface;
-        final primaryColor = Theme.of(context).colorScheme.primary;
-        final onPrimary = Theme.of(context).colorScheme.onPrimary;
-        final inputFill = isDark ? AppTheme.darkInput : AppTheme.lightInput;
-        final inputBorder = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
-        final destructive = Colors.red;
-        
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: bgColor,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bgColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final onPrimary = Theme.of(context).colorScheme.onPrimary;
+          final inputFill = isDark ? AppTheme.darkInput : AppTheme.lightInput;
+          final inputBorder = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+          final destructive = Colors.red;
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: bgColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Yeni Post Ekle',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contentController,
+                    maxLength: maxLength,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    decoration: InputDecoration(
+                      labelText: 'Post içeriğinizi yazın...',
+                      filled: true,
+                      fillColor: inputFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      counterText: '',
+                    ),
+                    maxLines: 6,
+                    onChanged: (value) {
+                      setDialogState(() {});
+                    },
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                const SizedBox(height: 8),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Yeni Post Ekle',
+                    Text(
+                      '${contentController.text.length}/$maxLength karakter',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: contentController.text.length > maxLength * 0.8
+                            ? Colors.orange
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
-                      splashRadius: 20,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
+                    if (contentController.text.length > maxLength * 0.8)
+                      Icon(
+                        Icons.warning,
+                        size: 16,
+                        color: Colors.orange,
+                      ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentController,
-                  decoration: InputDecoration(
-                    labelText: 'Post içeriğinizi yazın...',
-                    filled: true,
-                    fillColor: inputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: inputBorder, width: 1),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: inputBorder, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: primaryColor, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                  ),
-                  maxLines: 6,
-                  style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -325,74 +359,104 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
             ),
           ),
         );
-      },
+        },
+      ),
     );
   }
 
   void _showCreateCommentDialog(int postId) {
     final contentController = TextEditingController();
+    const int maxLength = 2000;
 
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = Theme.of(context).colorScheme.surface;
-        final primaryColor = Theme.of(context).colorScheme.primary;
-        final onPrimary = Theme.of(context).colorScheme.onPrimary;
-        final inputFill = isDark ? AppTheme.darkInput : AppTheme.lightInput;
-        final inputBorder = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
-        final destructive = Colors.red;
-        
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: bgColor,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bgColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final onPrimary = Theme.of(context).colorScheme.onPrimary;
+          final inputFill = isDark ? AppTheme.darkInput : AppTheme.lightInput;
+          final inputBorder = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+          final destructive = Colors.red;
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: bgColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Yorum Ekle',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contentController,
+                    maxLength: maxLength,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    decoration: InputDecoration(
+                      labelText: 'Yorumunuzu yazın...',
+                      filled: true,
+                      fillColor: inputFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      counterText: '',
+                    ),
+                    maxLines: 3,
+                    onChanged: (value) {
+                      setDialogState(() {});
+                    },
+                    style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                const SizedBox(height: 8),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Yorum Ekle',
+                    Text(
+                      '${contentController.text.length}/$maxLength karakter',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: contentController.text.length > maxLength * 0.8
+                            ? Colors.orange
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
-                      splashRadius: 20,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
+                    if (contentController.text.length > maxLength * 0.8)
+                      Icon(
+                        Icons.warning,
+                        size: 16,
+                        color: Colors.orange,
+                      ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentController,
-                  decoration: InputDecoration(
-                    labelText: 'Yorumunuzu yazın...',
-                    filled: true,
-                    fillColor: inputFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: inputBorder, width: 1),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: inputBorder, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: primaryColor, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  maxLines: 3,
-                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -471,7 +535,8 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
             ),
           ),
         );
-      },
+        },
+      ),
     );
   }
 
@@ -882,12 +947,13 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                         ],
                                       ),
                                       const SizedBox(height: 12),
-                                      Text(
+                                      _buildExpandableContent(
                                         post.content,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          height: 1.5,
-                                        ),
+                                        post.id,
+                                        _postContentExpanded,
+                                        (postId) => setState(() {
+                                          _postContentExpanded[postId] = !(_postContentExpanded[postId] ?? false);
+                                        }),
                                       ),
                                       const SizedBox(height: 12),
                                       Row(
@@ -999,6 +1065,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                                                 text: comment.author.username,
                                                                 colorHex: comment.author.customUsernameColor,
                                                                 isPremium: comment.author.isPremium,
+                                                                fontSize: 13,
                                                               ),
                                                             ),
                                                             if (comment.author.isPremium) ...[
@@ -1057,12 +1124,14 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                                 ],
                                               ),
                                               const SizedBox(height: 8),
-                                              Text(
+                                              _buildExpandableContent(
                                                 comment.content,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  height: 1.4,
-                                                ),
+                                                comment.id,
+                                                _commentContentExpanded,
+                                                (commentId) => setState(() {
+                                                  _commentContentExpanded[commentId] = !(_commentContentExpanded[commentId] ?? false);
+                                                }),
+                                                isComment: true,
                                               ),
                                               const SizedBox(height: 8),
                                               Row(
@@ -1082,6 +1151,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                                       text: comment.author.username,
                                                       colorHex: comment.author.customUsernameColor,
                                                       isPremium: comment.author.isPremium,
+                                                      fontSize: 12,
                                                     ),
                                                   ),
                                                   if (comment.author.id != null && _currentUser?.id != null && comment.author.id != _currentUser!.id) ...[
@@ -1117,7 +1187,7 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
                                                       const Icon(Icons.expand_more, size: 16),
                                                       const SizedBox(width: 4),
                                                       Text(
-                                                        'Daha fazla yorum göster',
+                                                        '5 yorum daha göster',
                                                         style: TextStyle(
                                                           fontSize: 12,
                                                           color: Colors.blue[600],
@@ -1374,6 +1444,100 @@ class _ThreadDetailScreenState extends State<ThreadDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildExpandableContent(
+    String content,
+    int id,
+    Map<int, bool> expandedMap,
+    Function(int) onToggle, {
+    bool isComment = false,
+  }) {
+    const int maxVisibleChars = 200;
+    final bool isExpanded = expandedMap[id] ?? false;
+    final bool needsExpansion = content.length > maxVisibleChars;
+    
+    if (!needsExpansion) {
+      return Text(
+        content,
+        style: TextStyle(
+          fontSize: isComment ? 14 : 16,
+          height: isComment ? 1.4 : 1.5,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isExpanded ? content : content.substring(0, maxVisibleChars),
+          style: TextStyle(
+            fontSize: isComment ? 14 : 16,
+            height: isComment ? 1.4 : 1.5,
+          ),
+        ),
+        if (!isExpanded) ...[
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: () => onToggle(id),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Devamını oku',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.expand_more,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: () => onToggle(id),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Daha az göster',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.expand_less,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 } 

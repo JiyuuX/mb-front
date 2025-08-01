@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/forum_service.dart';
 import '../models/thread.dart';
@@ -155,6 +156,7 @@ class _ForumScreenState extends State<ForumScreen> {
 
     final titleController = TextEditingController();
     String selectedCategory = 'genel';
+    const int maxLength = 200;
     final categories = [
       {'value': 'genel', 'label': 'Genel'},
       {'value': 'muzik', 'label': 'Müzik'},
@@ -211,9 +213,10 @@ class _ForumScreenState extends State<ForumScreen> {
                   // shadcn-style geniş input
               TextField(
                 controller: titleController,
+                maxLength: maxLength,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
                     decoration: InputDecoration(
-                      labelText: 'Thread başlığını girin...'
-                          ,
+                      labelText: 'Thread başlığını girin...',
                       filled: true,
                       fillColor: inputFill,
                       border: OutlineInputBorder(
@@ -229,9 +232,34 @@ class _ForumScreenState extends State<ForumScreen> {
                         borderSide: BorderSide(color: primaryColor, width: 2),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      counterText: '',
                 ),
                 maxLines: 2,
+                onChanged: (value) {
+                  setState(() {});
+                },
                     style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${titleController.text.length}/$maxLength karakter',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: titleController.text.length > maxLength * 0.8
+                          ? Colors.orange
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (titleController.text.length > maxLength * 0.8)
+                    Icon(
+                      Icons.warning,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(

@@ -24,7 +24,8 @@ class ColoredUsername extends StatelessWidget {
   Widget build(BuildContext context) {
     Color? color;
     if (isPremium) {
-      if (colorHex != null && colorHex!.isNotEmpty) {
+      // Premium kullanıcılar için özel renk kullan
+      if (colorHex != null && colorHex!.isNotEmpty && colorHex != '#000000') {
         try {
           color = Color(int.parse(colorHex!.replaceAll('#', '0xFF')));
         } catch (_) {

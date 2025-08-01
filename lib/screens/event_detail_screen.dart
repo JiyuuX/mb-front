@@ -23,7 +23,7 @@ class EventDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text('Mekan: ${event.venue}'),
-            Text('Tarih: ${event.date}'),
+            Text('Tarih: ${event.date.day}.${event.date.month}.${event.date.year}'),
             Text('Saat: ${event.timeFormatted}'),
             Text('Açıklama: ${event.description}'),
             Text('Bilet Fiyatı: ${event.ticketPrice} TL'),

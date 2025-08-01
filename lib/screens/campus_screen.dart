@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
@@ -355,33 +356,156 @@ class _CampusScreenState extends State<CampusScreen> with SingleTickerProviderSt
 
   void _showCreateThreadDialog(String forumType) {
     final controller = TextEditingController();
+    const int maxLength = 200;
+    
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(forumType == 'itiraf' ? 'Yeni İtiraf' : 'Yeni Soru/Yardımlaşma'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Başlık'),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('İptal'),
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bgColor = Theme.of(context).colorScheme.surface;
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final onPrimary = Theme.of(context).colorScheme.onPrimary;
+          final inputFill = isDark ? Colors.grey[800]! : Colors.grey[100]!;
+          final inputBorder = isDark ? Colors.grey[600]! : Colors.grey[300]!;
+          final destructive = Colors.red;
+          
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: bgColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        forumType == 'itiraf' ? 'Yeni İtiraf' : 'Yeni Soru/Yardımlaşma',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
+                        splashRadius: 20,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    maxLength: maxLength,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    decoration: InputDecoration(
+                      labelText: 'Başlık girin...',
+                      filled: true,
+                      fillColor: inputFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: inputBorder, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      counterText: '',
+                    ),
+                    maxLines: 2,
+                    onChanged: (value) {
+                      setDialogState(() {});
+                    },
+                    style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${controller.text.length}/$maxLength karakter',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: controller.text.length > maxLength * 0.8
+                              ? Colors.orange
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (controller.text.length > maxLength * 0.8)
+                        Icon(
+                          Icons.warning,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: destructive,
+                            side: BorderSide(color: destructive, width: 1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('İptal'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: onPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            if (controller.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Başlık gereklidir.'),
+                                  backgroundColor: destructive,
+                                ),
+                              );
+                              return;
+                            }
+                            if (controller.text.length > maxLength) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Başlık maksimum $maxLength karakter olabilir.'),
+                                  backgroundColor: destructive,
+                                ),
+                              );
+                              return;
+                            }
+                            final title = controller.text.trim();
+                            Navigator.of(context).pop();
+                            await _createThread(title, forumType);
+                          },
+                          child: const Text('Oluştur', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final title = controller.text.trim();
-                if (title.isEmpty) return;
-                Navigator.of(context).pop();
-                await _createThread(title, forumType);
-              },
-              child: const Text('Oluştur'),
-            ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

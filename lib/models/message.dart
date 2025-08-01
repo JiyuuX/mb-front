@@ -7,6 +7,7 @@ class Message {
   final String? text;
   final String? mediaUrl;
   final bool isRead;
+  final String status; // 'sending', 'sent', 'delivered', 'read', 'failed'
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class Message {
     this.text,
     this.mediaUrl,
     required this.isRead,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -29,6 +31,7 @@ class Message {
       text: json['text'],
       mediaUrl: json['media'],
       isRead: json['is_read'],
+      status: json['status'] ?? 'sent',
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );

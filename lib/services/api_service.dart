@@ -17,11 +17,8 @@ class ApiService {
       return 'http://10.0.2.2:8000/api'; // Android emulator
     }
     
-    // Gerçek cihazlar için ağ IP'si
-    // Windows: 192.168.1.105, macOS: 192.168.1.100
-    // Aynı ağda olduğu için her iki IP de çalışacak
-    return 'http://192.168.1.105:8000/api'; // Ana IP (Windows)
-    // Alternatif: return 'http://192.168.1.100:8000/api'; // macOS IP
+    // Localhost için
+    return 'http://localhost:8000/api';
   }
   
   // IP adresini değiştirmek için kullanın
@@ -42,8 +39,8 @@ class ApiService {
       return 'http://$savedIp:8000/api';
     }
     
-    // Varsayılan IP (Mac için)
-    return 'http://192.168.1.105:8000/api';
+    // Localhost
+    return 'http://localhost:8000/api';
   }
 
   // Ban handler
@@ -98,6 +95,17 @@ class ApiService {
       headers: headers,
       body: json.encode(data),
     );
+    
+    // Login endpoint'i için 401 kontrolünü atla
+    if (endpoint == '/users/login/') {
+      _checkBan(response);
+      if (response.statusCode == 403) {
+        await removeToken();
+        throw BanException();
+      }
+      return response;
+    }
+    
     _checkBan(response);
     if (response.statusCode == 403) {
       await removeToken();
@@ -230,12 +238,38 @@ class ApiService {
     await post('/chat/conversations/$conversationId/mark_read/', {});
   }
 
-  static Future<List<dynamic>> fetchDiscountVenues({required String city, bool isPremium = true}) async {
-    final response = await get('/market/discount-venues/?city=${Uri.encodeComponent(city)}&is_premium=${isPremium ? 'true' : 'false'}');
+  // Mark messages as read
+  static Future<http.Response> markMessagesAsRead(int conversationId) async {
+    return await post('/chat/conversations/$conversationId/mark_messages_read/', {});
+  }
+
+  // Mark my messages as read by others
+  static Future<http.Response> markMyMessagesAsRead(int conversationId) async {
+    return await post('/chat/conversations/$conversationId/mark_my_messages_read/', {});
+  }
+
+  // Update message status
+  static Future<void> updateMessageStatus(int messageId, String status) async {
+    await post('/chat/messages/$messageId/status/', {'status': status});
+  }
+
+  static Future<List<dynamic>> fetchDiscountVenues() async {
+    final response = await get('/market/discount-venues/');
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         return data['venues'];
+      }
+    }
+    return [];
+  }
+
+  static Future<List<dynamic>> fetchFreeProducts() async {
+    final response = await get('/market/free-products/');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        return data['products'];
       }
     }
     return [];
@@ -252,8 +286,13 @@ class ApiService {
     return [];
   }
 
-  static Future<List<dynamic>> fetchUpcomingEvents() async {
-    final response = await get('/events/upcoming-events/');
+  static Future<List<dynamic>> fetchUpcomingEvents({String? city}) async {
+    String endpoint = '/events/upcoming-events/';
+    if (city != null && city.isNotEmpty) {
+      endpoint += '?city=${Uri.encodeComponent(city)}';
+    }
+    
+    final response = await get(endpoint);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data is Map && data.containsKey('results')) {
@@ -280,8 +319,9 @@ class ApiService {
     final response = await get('/users/popular-users/');
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      if (data['success'] == true && data['users'] != null) {
-        return data['users'];
+      // Backend artık direkt liste döndürüyor, success wrapper'ı yok
+      if (data is List) {
+        return data;
       }
     }
     return [];

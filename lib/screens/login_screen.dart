@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
 import '../widgets/ban_dialog.dart';
+import '../widgets/verification_dialog.dart';
 import 'register_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -40,6 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
+      // Debug: Response'u yazdır
+      print('Login response: $result');
+
       if (result['success']) {
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -48,6 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
+          // Debug: Email verification kontrolü
+          print('Email verification required: ${result['email_verification_required']}');
+          
           if (result['banli'] == true) {
             // Banlı kullanıcıya özel modern dialog
             showDialog(
@@ -61,15 +68,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
               },
             );
+          } else if (result['email_verification_required'] == true) {
+            // Debug: Verification dialog açılıyor
+            print('Opening verification dialog for email: ${result['email']}');
+            
+            // Email verification dialog'u göster
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => VerificationDialog(
+                email: result['email'],
+                initialCode: result['verification_code'],
+                onVerificationSuccess: () {
+                  // Doğrulama başarılı olduğunda tekrar login dene
+                  _login();
+                },
+                onCancel: () {
+                  // İptal edildiğinde dialog'u kapat
+                  Navigator.of(context).pop();
+                },
+              ),
+            );
           } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
           }
         }
       }

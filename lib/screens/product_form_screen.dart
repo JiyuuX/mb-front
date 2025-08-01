@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'dart:math' as math;
+import 'package:http/http.dart' as http;
 
 class ProductFormScreen extends StatefulWidget {
   final Product? product;
@@ -296,9 +297,72 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickMultiImage();
     if (picked.isNotEmpty) {
+      final totalImages = _pickedImages.length + picked.length;
+      if (totalImages > 12) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Maksimum 12 adet resim yükleyebilirsiniz. Şu anda ${_pickedImages.length} resim var.'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
-        _pickedImages = picked;
+        _pickedImages = [..._pickedImages, ...picked];
       });
+    }
+  }
+
+  Future<void> _replaceProductImages(int productId, List<XFile> images) async {
+    try {
+      final token = await ApiService.getToken();
+      final baseUrl = await ApiService.effectiveBaseUrl;
+      
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/market/products/$productId/upload_image/'),
+      );
+      
+      request.headers['Authorization'] = 'Bearer $token';
+      
+      // Tüm görselleri ekle
+      for (int i = 0; i < images.length; i++) {
+        final image = images[i];
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'images',
+              bytes,
+              filename: image.name,
+            ),
+          );
+        } else {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'images',
+              image.path,
+            ),
+          );
+        }
+      }
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        print('Product images replaced successfully');
+      } else {
+        print('Error replacing product images: ${response.statusCode} - ${response.body}');
+        throw Exception('Görseller güncellenirken hata oluştu');
+      }
+    } catch (e) {
+      print('Error in _replaceProductImages: $e');
+      throw Exception('Görseller güncellenirken hata oluştu: $e');
     }
   }
 
@@ -324,10 +388,17 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       
       print('Product created/updated: ${product.id}');
       
+      // Eğer yeni ürün oluşturuluyorsa ve görseller varsa
       if (widget.product == null && _pickedImages.isNotEmpty) {
         print('Uploading ${_pickedImages.length} images for product ${product.id}');
         await ProductService.uploadProductImages(product.id, _pickedImages);
         print('Images uploaded successfully');
+      }
+      // Eğer ürün güncelleniyorsa ve yeni görseller varsa
+      else if (widget.product != null && _pickedImages.isNotEmpty) {
+        print('Replacing images for product ${product.id} with ${_pickedImages.length} new images');
+        await _replaceProductImages(product.id, _pickedImages);
+        print('Images replaced successfully');
       }
       
       if (mounted) {
@@ -652,25 +723,55 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _pickImages,
-                            icon: Icon(
-                              Icons.image,
-                              size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 18)
-                            ),
-                            label: Text(
-                              'Görselleri Seç',
-                              style: TextStyle(
-                                fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
-                              )
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              elevation: 0,
-                              padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12, horizontal: 16, vertical: 8),
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _pickedImages.length >= 12 ? null : _pickImages,
+                                  icon: Icon(
+                                    Icons.image,
+                                    size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 18)
+                                  ),
+                                  label: Text(
+                                    'Görselleri Seç',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14)
+                                    )
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _pickedImages.length >= 12 
+                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                        : Theme.of(context).colorScheme.primary,
+                                    foregroundColor: _pickedImages.length >= 12 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    elevation: 0,
+                                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 12, horizontal: 16, vertical: 8),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${_pickedImages.length}/12',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           if (_pickedImages.isNotEmpty) ...[
                             SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
@@ -681,31 +782,58 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                                 itemCount: _pickedImages.length,
                                 separatorBuilder: (_, __) => SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 8)),
                                 itemBuilder: (context, idx) {
-                                  if (kIsWeb) {
-                                    return Container(
-                                      width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
-                                      height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(8),
+                                  return Stack(
+                                    children: [
+                                      if (kIsWeb) ...[
+                                        Container(
+                                          width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                          height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.image, 
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                            size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.file(
+                                            File(_pickedImages[idx].path),
+                                            width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                            height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ],
+                                      Positioned(
+                                        top: 2,
+                                        right: 2,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _pickedImages.removeAt(idx);
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.close,
+                                              size: 12,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.image, 
-                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                        size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 24)
-                                      ),
-                                    );
-                                  } else {
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.file(
-                                        File(_pickedImages[idx].path),
-                                        width: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
-                                        height: ResponsiveUtils.getResponsiveImageSize(context, baseSize: 60),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    );
-                                  }
+                                    ],
+                                  );
                                 },
                               ),
                             ),

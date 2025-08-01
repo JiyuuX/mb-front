@@ -7,7 +7,6 @@ import '../services/api_service.dart';
 import '../utils/responsive_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'followers_following_list_screen.dart';
@@ -93,30 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     }
   }
 
-  Future<void> _logout() async {
-    try {
-      final result = await AuthService.logout();
-      if (result['success']) {
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Çıkış yapılırken hata oluştu: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    }
-  }
+
 
   Future<void> _activatePremium() async {
     try {
@@ -447,6 +423,170 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     }
   }
 
+  void _showBioEditDialog() {
+    final TextEditingController bioController = TextEditingController(text: _user!.bio ?? '');
+    final int maxLength = 500;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(
+                'Bio Düzenle',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Kendiniz hakkında kısa bir açıklama yazın:',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: bioController,
+                    maxLength: maxLength,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Kendiniz hakkında yazın...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${bioController.text.length}/$maxLength karakter',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: bioController.text.length > maxLength * 0.8
+                              ? Colors.orange
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (bioController.text.length > maxLength * 0.8)
+                        Icon(
+                          Icons.warning,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'İptal',
+                    style: GoogleFonts.inter(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: bioController.text.trim() == (_user!.bio ?? '')
+                      ? null
+                      : () async {
+                          Navigator.of(context).pop();
+                          await _updateBio(bioController.text.trim());
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Kaydet',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateBio(String newBio) async {
+    try {
+      final response = await ApiService.put(
+        '/users/update/',
+        {'bio': newBio},
+      );
+      
+      print('DEBUG: Bio update response status: ${response.statusCode}');
+      print('DEBUG: Bio update response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        // Bio güncellendikten sonra tam user bilgilerini al
+        await _loadUserProfile();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bio başarıyla güncellendi!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } else {
+        String errorMessage = 'Bio güncellenirken hata oluştu.';
+        try {
+          final data = json.decode(response.body);
+          errorMessage = data['message'] ?? data['detail'] ?? errorMessage;
+        } catch (e) {
+          print('DEBUG: Error parsing error response: $e');
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      print('DEBUG: Bio update error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Hata: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -771,16 +911,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           children: [
             _buildModernInfoRow('E-posta', _user!.email, Icons.email, Colors.blue),
             const SizedBox(height: 16),
-            _buildModernInfoRow('Telefon', _user!.phoneNumber ?? 'Belirtilmemiş', Icons.phone, Colors.green),
-            const SizedBox(height: 16),
-            _buildModernInfoRow('Bio', _user!.bio ?? 'Bio eklenmemiş', Icons.info, Colors.orange),
-            const SizedBox(height: 16),
-            _buildModernInfoRow(
-              'Üyelik Tarihi',
-              '${_user!.createdAt.day}/${_user!.createdAt.month}/${_user!.createdAt.year}',
-              Icons.calendar_today,
-              Theme.of(context).colorScheme.secondary,
-            ),
+            _buildModernInfoRow('Üyelik Tarihi', '${_user!.createdAt.day}/${_user!.createdAt.month}/${_user!.createdAt.year}', Icons.calendar_today, Theme.of(context).colorScheme.secondary),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -799,6 +930,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+                         _buildModernInfoRow(
+               'Bio',
+               _user!.bio ?? 'Bio eklenmemiş',
+               Icons.info,
+               Colors.orange,
+               onTap: _showBioEditDialog,
+             ),
           ],
         ),
       ),
@@ -894,9 +1033,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildModernInfoRow(String label, String value, IconData icon, Color color) {
-    return Container(
-                            padding: const EdgeInsets.all(16),
+  Widget _buildModernInfoRow(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    Widget content = Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
@@ -940,6 +1079,16 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: content,
+      );
+    }
+
+    return content;
   }
 
   Widget _buildPremiumCard() {
@@ -1039,13 +1188,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
       child: Column(
         children: [
-          _buildModernListTile(
-            Icons.camera_alt,
-            kIsWeb ? 'Profil Resmi Seç' : 'Profil Resmi Değiştir',
-            Colors.blue,
-            onTap: _showImageSourceDialog,
-          ),
-          _buildDivider(),
           if (_user!.isPremiumActive) ...[
             _buildModernListTile(
               Icons.palette,
@@ -1055,30 +1197,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             ),
             _buildDivider(),
           ],
-          _buildModernListTile(
-            Icons.edit,
-            'Profili Düzenle',
-            Colors.green,
-            onTap: () {
-              // Profil düzenleme sayfasına yönlendir
-            },
-          ),
-          _buildDivider(),
-          _buildModernListTile(
-            Icons.lock,
-            'Şifre Değiştir',
-            Colors.orange,
-            onTap: () {
-              // Şifre değiştirme sayfasına yönlendir
-            },
-          ),
-          _buildDivider(),
-          _buildModernListTile(
-            Icons.logout,
-            'Çıkış Yap',
-            Colors.red,
-            onTap: _logout,
-          ),
         ],
       ),
     );

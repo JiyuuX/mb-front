@@ -8,8 +8,10 @@ import '../models/user.dart';
 import '../models/news.dart';
 import '../models/message.dart';
 import '../models/thread.dart';
+import '../models/notification.dart' as app_notification;
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/news_ticker.dart';
 import '../widgets/advertisement_widget.dart';
 import '../widgets/theme_switch.dart';
@@ -36,6 +38,8 @@ import 'dart:async';
 import 'package:geocoding/geocoding.dart';
 import 'dart:math' as math;
 import 'public_profile_screen.dart';
+import 'settings_screen.dart';
+import 'notification_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -53,12 +57,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
   bool _newsEnabled = true;
   int _unreadConversations = 0;
+  int _unreadNotifications = 0;
   Map<String, dynamic>? _weather;
   Position? _position;
   bool _isLoadingWeather = true;
   double? _latitude;
   double? _longitude;
   bool _isLoadingEvents = true;
+  bool _isLocationDetermined = false;
   Thread? _popularThread;
   bool _isLoadingPopularThread = true;
   Thread? _localPopularThread;
@@ -183,10 +189,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .replaceAll(' ', '');
   }
 
+  // Feature items data structure
+  final List<Map<String, dynamic>> _featureItems = [
+    {
+      'icon': Icons.shopping_bag,
+      'color': const Color(0xFF667eea),
+      'onTap': null, // Will be set in initState
+      'delay': 600,
+      'comingSoon': false,
+    },
+    {
+      'icon': Icons.hotel,
+      'color': Colors.teal,
+      'onTap': null, // Will be set in initState
+      'delay': 700,
+      'comingSoon': true,
+      'comingSoonText': 'Konaklama sayfası yakında eklenecek.',
+    },
+    {
+      'icon': Icons.event,
+      'color': Colors.green,
+      'onTap': null, // Will be set in initState
+      'delay': 800,
+      'comingSoon': false,
+    },
+    {
+      'icon': Icons.directions_car,
+      'color': Colors.orange,
+      'onTap': null, // Will be set in initState
+      'delay': 1000,
+      'comingSoon': true,
+      'comingSoonText': 'Araba kiralama sayfası yakında eklenecek.',
+    },
+    // Add more items here as needed - the grid will automatically adjust
+    // Example of adding a new feature:
+    // {
+    //   'icon': Icons.flight,
+    //   'color': Colors.purple,
+    //   'onTap': null, // Will be set in initState
+    //   'delay': 1200,
+    //   'comingSoon': false,
+    // },
+  ];
+
   @override
   void initState() {
     super.initState();
+    _initializeFeatureItems();
     _initializeDashboard();
+  }
+
+  void _initializeFeatureItems() {
+    // Set the onTap callbacks for feature items
+    _featureItems[0]['onTap'] = () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const ProductCategoryScreen()),
+      );
+    };
+    
+    _featureItems[1]['onTap'] = () {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Yakında'),
+          content: Text(_featureItems[1]['comingSoonText']),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
+        ),
+      );
+    };
+    
+    _featureItems[2]['onTap'] = () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const EventsScreen()),
+      );
+    };
+    
+    _featureItems[3]['onTap'] = () {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Yakında'),
+          content: Text(_featureItems[3]['comingSoonText']),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
+        ),
+      );
+    };
+    
+    // Add more callbacks here when you add new feature items above
+    // Example for a new feature (uncomment when you add the feature above):
+    // _featureItems[4]['onTap'] = () {
+    //   Navigator.of(context).push(
+    //     MaterialPageRoute(builder: (context) => const NewFeatureScreen()),
+    //   );
+    // };
   }
 
   Future<void> _initializeDashboard() async {
@@ -195,8 +290,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadDashboardData();
     _loadNews();
     _loadUnreadConversations();
+    _loadUnreadNotifications();
     _determinePositionAndFetchWeather();
-    _loadUpcomingEvents();
+    // _loadUpcomingEvents() will be called after location is determined
     _loadPopularThread();
     _loadLocalPopularThread();
     _loadDailySuggestion();
@@ -205,7 +301,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // _startEventAutoScroll(); // kaldırıldı
   }
 
-  // void _startEventAutoScroll() { ... } // kaldırıldı
+  // Dynamic grid builder method
+  Widget _buildDynamicFeatureGrid() {
+    const int columns = 4; // Fixed 4-column layout
+    final int totalItems = _featureItems.length;
+    final int rows = (totalItems / columns).ceil(); // Calculate required rows
+    
+    return Column(
+      children: List.generate(rows, (rowIndex) {
+        return Column(
+          children: [
+            Row(
+              children: List.generate(columns, (colIndex) {
+                final itemIndex = rowIndex * columns + colIndex;
+                
+                // If we have an item for this position
+                if (itemIndex < totalItems) {
+                  final item = _featureItems[itemIndex];
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: colIndex < columns - 1 ? ResponsiveUtils.getResponsivePadding(context, basePadding: 12) : 0,
+                      ),
+                      child: item['comingSoon'] == true
+                          ? Stack(
+                              children: [
+                                _buildCompactFeatureCard(
+                                  icon: item['icon'],
+                                  color: item['color'],
+                                  onTap: item['onTap'],
+                                  delay: item['delay'],
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 2,
+                                          offset: Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      'Yakında',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : _buildCompactFeatureCard(
+                              icon: item['icon'],
+                              color: item['color'],
+                              onTap: item['onTap'],
+                              delay: item['delay'],
+                            ),
+                    ),
+                  );
+                } else {
+                  // Empty space for incomplete rows
+                  return Expanded(child: SizedBox());
+                }
+              }),
+            ),
+            // Add spacing between rows (except for the last row)
+            if (rowIndex < rows - 1)
+              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
+          ],
+        );
+      }),
+    );
+  }
 
   @override
   void dispose() {
@@ -315,6 +491,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _loadUnreadNotifications() async {
+    try {
+      final unreadCount = await NotificationService.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = unreadCount;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = 0;
+        });
+      }
+    }
+  }
+
   // Haversine formülü ile iki nokta arası mesafe (km)
   double _distance(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371; // Dünya yarıçapı km
@@ -376,8 +569,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!serviceEnabled) {
         print('DEBUG: Location services are disabled.');
         if (mounted) {
-          setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+          setState(() { 
+            _weatherCityName = 'Bilinmiyor'; 
+            _weatherCitySlug = '';
+            _isLocationDetermined = true; // Set to true to show events
+          });
         }
+        // Load events even if location services are disabled
+        _loadUpcomingEvents();
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
@@ -386,16 +585,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (permission == LocationPermission.denied) {
           print('DEBUG: Location permission denied.');
           if (mounted) {
-            setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+            setState(() { 
+              _weatherCityName = 'Bilinmiyor'; 
+              _weatherCitySlug = '';
+              _isLocationDetermined = true; // Set to true to show events
+            });
           }
+          // Load events even if location permission denied
+          _loadUpcomingEvents();
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
         print('DEBUG: Location permission denied forever.');
         if (mounted) {
-          setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+          setState(() { 
+            _weatherCityName = 'Bilinmiyor'; 
+            _weatherCitySlug = '';
+            _isLocationDetermined = true; // Set to true to show events
+          });
         }
+        // Load events even if location permission denied forever
+        _loadUpcomingEvents();
         return;
       }
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -407,14 +618,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final weather = await ApiService.fetchWeatherByCoords(lat: position.latitude, lon: position.longitude);
       print('DEBUG: Weather API response: $weather');
       if (mounted) {
-        setState(() { _weather = weather; });
+        setState(() { 
+          _weather = weather; 
+          _isLocationDetermined = true;
+        });
       }
       await _loadDashboardData(citySlug: _weatherCitySlug);
+      // Load events after location is determined
+      _loadUpcomingEvents();
     } catch (e) {
       print('DEBUG: Error in _determinePositionAndFetchWeather: $e');
       if (mounted) {
-        setState(() { _weatherCityName = 'Bilinmiyor'; _weatherCitySlug = ''; });
+        setState(() { 
+          _weatherCityName = 'Bilinmiyor'; 
+          _weatherCitySlug = '';
+          _isLocationDetermined = true; // Set to true even on error to show events
+        });
       }
+      // Load events even if location failed
+      _loadUpcomingEvents();
     }
   }
 
@@ -444,7 +666,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadUpcomingEvents() async {
     setState(() { _isLoadingEvents = true; });
-    final eventsJson = await ApiService.fetchUpcomingEvents();
+    
+    // Use city slug if available for location-based events
+    String? citySlug = _weatherCitySlug;
+    List<dynamic> eventsJson;
+    
+    if (citySlug != null && citySlug.isNotEmpty) {
+      // Load events for specific city
+      eventsJson = await ApiService.fetchUpcomingEvents(city: citySlug);
+    } else {
+      // Load all events if no city available
+      eventsJson = await ApiService.fetchUpcomingEvents();
+    }
+    
     if (mounted) {
       setState(() {
         _upcomingEvents = eventsJson.map((e) => Event.fromJson(e)).toList();
@@ -522,6 +756,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    try {
+      final result = await AuthService.logout();
+      if (result['success']) {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Çıkış yapılırken hata oluştu: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _loadCampusPopularThread() async {
     setState(() { _isLoadingCampusPopularThread = true; });
     print('DEBUG: Dashboard _user.university: ' + (_user?.university ?? 'null'));
@@ -532,6 +791,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       return;
     }
+    
+    // Önce itiraf forumundan günlük popüler thread'i dene
+    final itirafResult = await ForumService.getCampusDailyPopularThread(
+      university: _user!.university!,
+      forumType: 'itiraf',
+    );
+    
+    if (itirafResult['success']) {
+      print('DEBUG: Dashboard itiraf günlük popüler thread bulundu: ${itirafResult['thread'].title}');
+      if (mounted) {
+        setState(() { 
+          _campusPopularThread = itirafResult['thread']; 
+          _isLoadingCampusPopularThread = false; 
+        });
+      }
+      return;
+    }
+    
+    // İtiraf'ta yoksa yardım forumundan dene
+    final yardimResult = await ForumService.getCampusDailyPopularThread(
+      university: _user!.university!,
+      forumType: 'yardim',
+    );
+    
+    if (yardimResult['success']) {
+      print('DEBUG: Dashboard yardım günlük popüler thread bulundu: ${yardimResult['thread'].title}');
+      if (mounted) {
+        setState(() { 
+          _campusPopularThread = yardimResult['thread']; 
+          _isLoadingCampusPopularThread = false; 
+        });
+      }
+      return;
+    }
+    
+    // Eğer günlük popüler thread yoksa, eski yöntemi kullan
+    print('DEBUG: Dashboard günlük popüler thread bulunamadı, eski yöntem kullanılıyor.');
     final itirafThreads = await ForumService.getCampusForumThreads(university: _user!.university!, forumType: 'itiraf');
     final yardimThreads = await ForumService.getCampusForumThreads(university: _user!.university!, forumType: 'yardim');
     print('DEBUG: Dashboard itirafThreads: ${itirafThreads.length}, yardimThreads: ${yardimThreads.length}');
@@ -683,19 +979,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             if (_unreadConversations > 0)
                               Positioned(
-                                right: 8,
-                                top: 8,
+                                right: 6,
+                                top: 6,
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(2),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     shape: BoxShape.circle,
                                   ),
-                                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                                   child: Center(
                                     child: Text(
                                       _unreadConversations.toString(),
-                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        Stack(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.notifications),
+                              onPressed: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                                );
+                                _loadUnreadNotifications();
+                              },
+                            ),
+                            if (_unreadNotifications > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                  child: Center(
+                                    child: Text(
+                                      _unreadNotifications.toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 ),
@@ -713,20 +1041,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 );
                                 await _loadUserProfile();
                                 await _loadCampusPopularThread();
-                              } else if (value == 'store') {
+                              } else if (value == 'settings') {
                                 await Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (context) => const MyStoreScreen()),
+                                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                                 );
+                              } else if (value == 'logout') {
+                                await _logout();
                               }
                             },
                             itemBuilder: (context) => [
                               PopupMenuItem(
                                 value: 'profile',
-                                child: Text('Profil'),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.person, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Profil'),
+                                  ],
+                                ),
                               ),
                               PopupMenuItem(
-                                value: 'store',
-                                child: Text('Mağazam'),
+                                value: 'settings',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.settings, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Ayarlar'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'logout',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.logout, size: 20, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Çıkış Yap', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -813,166 +1165,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
                           SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 16)),
                           
-                          // Compact 4x2 Grid Layout
-                          Column(
-                            children: [
-                              // First Row - 4 cards
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildCompactFeatureCard(
-                                      icon: Icons.shopping_bag,
-                                      color: const Color(0xFF667eea),
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (context) => const ProductCategoryScreen()),
-                                        );
-                                      },
-                                      delay: 600,
-                                    ),
-                                  ),
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(
-                                    child: Stack(
-                                      children: [
-                                        _buildCompactFeatureCard(
-                                          icon: Icons.hotel,
-                                          color: Colors.teal,
-                                          onTap: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text('Yakında'),
-                                                content: Text('Konaklama sayfası yakında eklenecek.'),
-                                                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
-                                              ),
-                                            );
-                                          },
-                                          delay: 700,
-                                        ),
-                                        Positioned(
-                                          top: 4,
-                                          right: 4,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius: BorderRadius.circular(8),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.1),
-                                                  blurRadius: 2,
-                                                  offset: Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Text(
-                                              'Yakında',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(
-                                    child: _buildCompactFeatureCard(
-                                      icon: Icons.event,
-                                      color: Colors.green,
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (context) => const EventsScreen()),
-                                        );
-                                      },
-                                      delay: 800,
-                                    ),
-                                  ),
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(
-                                    child: _buildCompactFeatureCard(
-                                      icon: Icons.favorite,
-                                      color: Colors.red,
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (context) => const FavoritesScreen()),
-                                        );
-                                      },
-                                      delay: 900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                              // Second Row - 1 card (car rental)
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Stack(
-                                      children: [
-                                        _buildCompactFeatureCard(
-                                          icon: Icons.directions_car,
-                                          color: Colors.orange,
-                                          onTap: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text('Yakında'),
-                                                content: Text('Araba kiralama sayfası yakında eklenecek.'),
-                                                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Tamam'))],
-                                              ),
-                                            );
-                                          },
-                                          delay: 1000,
-                                        ),
-                                        Positioned(
-                                          top: 4,
-                                          right: 4,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius: BorderRadius.circular(8),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.1),
-                                                  blurRadius: 2,
-                                                  offset: Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Text(
-                                              'Yakında',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Empty space for the remaining 3 slots
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(child: SizedBox()),
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(child: SizedBox()),
-                                  SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 12)),
-                                  Expanded(child: SizedBox()),
-                                ],
-                              ),
-                            ],
-                          ),
+                          // Dynamic Feature Grid
+                          _buildDynamicFeatureGrid(),
                           SizedBox(height: ResponsiveUtils.getResponsivePadding(context, basePadding: 32)),
 
                           // Yaklaşan Etkinlikler
-                          if (_isLoadingEvents)
+                          if (!_isLocationDetermined)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    CircularProgressIndicator(
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Konum bilgisi alınıyor...',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else if (_isLoadingEvents)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
                               child: Center(child: CircularProgressIndicator()),
@@ -1087,7 +1306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ],
                               ),
                             ),
-                          ] else ...[
+                          ] else if (_isLocationDetermined) ...[
                             Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
                               child: Center(child: Text('Yaklaşan etkinlik bulunamadı.')),
@@ -1561,15 +1780,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            'Aylık En Popüler 10 Kullanıcı',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          child: Row(
+            children: [
+              Icon(Icons.leaderboard, color: Theme.of(context).colorScheme.primary, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Aylık En Popüler 10 Kullanıcı',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
           ),
         ),
+        SizedBox(height: 8),
         ListView.separated(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
@@ -1586,10 +1812,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
               child: Card(
-                elevation: 2,
+                elevation: 3,
                 margin: EdgeInsets.symmetric(horizontal: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: ListTile(
                   leading: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -1604,25 +1830,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   title: Row(
                     children: [
-                      Text(user.username, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      SizedBox(width: 8),
-                      Text('#${index + 1}', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.w600)),
+                      Expanded(
+                        child: Text(user.username, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: index < 3 ? Colors.amber : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '#${index + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: index < 3 ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  subtitle: Row(
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Puan: ${user.popularity ?? 0}', style: TextStyle(fontSize: 13, color: Colors.deepOrange, fontWeight: FontWeight.bold)),
-                      SizedBox(width: 10),
-                      Icon(Icons.thumb_up, size: 14, color: Colors.blueGrey),
-                      SizedBox(width: 2),
-                      Text('${user.threadLikes ?? 0}', style: TextStyle(fontSize: 12)),
-                      SizedBox(width: 10),
-                      Icon(Icons.person_add, size: 14, color: Colors.green),
-                      SizedBox(width: 2),
-                      Text('${user.newFollowers ?? 0}', style: TextStyle(fontSize: 12)),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Puan: ${user.popularity ?? 0}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.deepOrange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.thumb_up, size: 14, color: Colors.blueGrey),
+                          SizedBox(width: 2),
+                          Text('${user.threadLikes ?? 0}', style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                          SizedBox(width: 12),
+                          Icon(Icons.person_add, size: 14, color: Colors.green),
+                          SizedBox(width: 2),
+                          Text('${user.newFollowers ?? 0}', style: TextStyle(fontSize: 12, color: Colors.green)),
+                        ],
+                      ),
                     ],
                   ),
-                  trailing: Icon(Icons.chevron_right),
+                  trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             );

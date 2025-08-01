@@ -8,6 +8,8 @@ import 'dart:convert';
 import '../services/product_service.dart';
 import 'subcategory_screen.dart';
 import 'all_products_screen.dart';
+import 'my_store_screen.dart';
+import 'favorites_screen.dart';
 
 class ProductCategoryScreen extends StatefulWidget {
   const ProductCategoryScreen({super.key});
@@ -215,6 +217,152 @@ class _ProductCategoryScreenState extends State<ProductCategoryScreen> {
                               SizedBox(height: 4),
                               Text(
                                 'Kategoriye göre ürünleri keşfet',
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Mağazam Seçeneği
+            Container(
+              margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 16),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 1,
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MyStoreScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.store,
+                            color: Colors.orange,
+                            size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 28),
+                          ),
+                        ),
+                        SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 20)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Mağazam',
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Ürünlerinizi yönetin ve satış yapın',
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Favorilerim Seçeneği
+            Container(
+              margin: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 0, bottom: 16),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 1,
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: ResponsiveUtils.getResponsiveEdgeInsets(context, baseValue: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.favorite,
+                            color: Colors.red,
+                            size: ResponsiveUtils.getResponsiveIconSize(context, baseSize: 28),
+                          ),
+                        ),
+                        SizedBox(width: ResponsiveUtils.getResponsivePadding(context, basePadding: 20)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Favorilerim',
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 18),
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Beğendiğiniz ürünleri görüntüleyin',
                                 style: TextStyle(
                                   fontSize: ResponsiveUtils.getResponsiveFontSize(context, baseSize: 14),
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,

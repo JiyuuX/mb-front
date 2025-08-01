@@ -27,6 +27,70 @@ class AuthService {
           'success': true,
           'message': data['message'],
           'user_id': data['user_id'],
+          'verification_code': data['verification_code'],
+          'email': data['email'],
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data.toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Bağlantı hatası: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      final response = await ApiService.post('/users/verify-email/', {
+        'email': email,
+        'code': code,
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'],
+        };
+      } else {
+        final data = json.decode(response.body);
+        return {
+          'success': false,
+          'message': data.toString(),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Bağlantı hatası: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> resendVerificationCode({
+    required String email,
+  }) async {
+    try {
+      final response = await ApiService.post('/users/resend-verification/', {
+        'email': email,
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'],
+          'verification_code': data['verification_code'],
+          'email': data['email'],
         };
       } else {
         final data = json.decode(response.body);
@@ -53,6 +117,10 @@ class AuthService {
         'password': password,
       });
 
+      // Debug: Response status ve body
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         
@@ -78,6 +146,28 @@ class AuthService {
           'message': data['message'] ?? 'Giriş başarılı!',
           'user': User.fromJson(data['user']),
           'tokens': data['tokens'],
+        };
+      } else if (response.statusCode == 401) {
+        final data = json.decode(response.body);
+        
+        // Debug: 401 response data
+        print('401 response data: $data');
+        
+        // Email verification required kontrolü
+        if (data['email_verification_required'] == true) {
+          print('Email verification required detected');
+          return {
+            'success': false,
+            'email_verification_required': true,
+            'message': data['message'],
+            'verification_code': data['verification_code'],
+            'email': data['email'],
+          };
+        }
+        
+        return {
+          'success': false,
+          'message': data.toString(),
         };
       } else {
         final data = json.decode(response.body);
@@ -124,58 +214,6 @@ class AuthService {
       return {
         'success': false,
         'message': 'Çıkış yapılırken hata oluştu: $e',
-      };
-    }
-  }
-
-  static Future<Map<String, dynamic>> verifyEmail(String token) async {
-    try {
-      final response = await ApiService.get('/users/verify-email/$token/');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'message': data['message'],
-        };
-      } else {
-        final data = json.decode(response.body);
-        return {
-          'success': false,
-          'message': data['message'],
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Email doğrulama hatası: $e',
-      };
-    }
-  }
-
-  static Future<Map<String, dynamic>> resendVerificationEmail(String email) async {
-    try {
-      final response = await ApiService.post('/users/resend-verification/', {
-        'email': email,
-      });
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'message': data['message'],
-        };
-      } else {
-        final data = json.decode(response.body);
-        return {
-          'success': false,
-          'message': data['message'],
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Email gönderme hatası: $e',
       };
     }
   }

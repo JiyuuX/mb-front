@@ -282,6 +282,45 @@ class ForumService {
     }
   }
 
+  // Kampüs günlük popüler thread
+  static Future<Map<String, dynamic>> getCampusDailyPopularThread({
+    required String university,
+    required String forumType,
+  }) async {
+    try {
+      final response = await ApiService.get('/forum/threads/campus/daily-popular/?university=${Uri.encodeComponent(university)}&forum_type=$forumType');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          final thread = Thread.fromJson(data['thread']);
+          return {
+            'success': true,
+            'thread': thread,
+            'like_count': data['like_count'],
+            'comment_count': data['comment_count'],
+            'score': data['score'],
+            'date': data['date'],
+          };
+        } else {
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Popüler thread bulunamadı.',
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'message': 'Popüler thread yüklenemedi.',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Popüler thread yükleme hatası: $e',
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> createCampusThread({
     required String title,
     required String category,

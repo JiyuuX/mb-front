@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
+import '../widgets/verification_dialog.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -54,14 +55,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (result['success']) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Theme.of(context).colorScheme.primary,
+          // Verification dialog'u göster
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => VerificationDialog(
+              email: result['email'],
+              initialCode: result['verification_code'],
+              onVerificationSuccess: () {
+                // Doğrulama başarılı olduğunda login screen'e yönlendir
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              onCancel: () {
+                // İptal edildiğinde login screen'e yönlendir
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
             ),
-          );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         }
       } else {
