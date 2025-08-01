@@ -31,6 +31,7 @@ import 'chat_list_screen.dart';
 import 'campus_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/forum_service.dart';
+import '../services/location_service.dart';
 import 'event_detail_screen.dart';
 import 'thread_detail_screen.dart';
 import 'opportunity_screen.dart';
@@ -565,9 +566,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _determinePositionAndFetchWeather() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        print('DEBUG: Location services are disabled.');
+      // LocationService kullanarak izinleri kontrol et
+      bool hasPermission = await LocationService.requestLocationPermission();
+      
+      if (!hasPermission) {
+        print('DEBUG: Location permission not granted.');
         if (mounted) {
           setState(() { 
             _weatherCityName = 'Bilinmiyor'; 
@@ -575,29 +578,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _isLocationDetermined = true; // Set to true to show events
           });
         }
-        // Load events even if location services are disabled
+        // Load events even if location permission denied
         _loadUpcomingEvents();
         return;
       }
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          print('DEBUG: Location permission denied.');
-          if (mounted) {
-            setState(() { 
-              _weatherCityName = 'Bilinmiyor'; 
-              _weatherCitySlug = '';
-              _isLocationDetermined = true; // Set to true to show events
-            });
-          }
-          // Load events even if location permission denied
-          _loadUpcomingEvents();
-          return;
-        }
-      }
-      if (permission == LocationPermission.deniedForever) {
-        print('DEBUG: Location permission denied forever.');
+
+      // Konum al
+      Position? position = await LocationService.getCurrentLocation();
+      
+      if (position == null) {
+        print('DEBUG: Could not get current location.');
         if (mounted) {
           setState(() { 
             _weatherCityName = 'Bilinmiyor'; 
@@ -605,15 +595,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _isLocationDetermined = true; // Set to true to show events
           });
         }
-        // Load events even if location permission denied forever
+        // Load events even if location failed
         _loadUpcomingEvents();
         return;
       }
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
       print('DEBUG: Position: lat=${position.latitude}, lon=${position.longitude}');
       if (mounted) {
         setState(() { _position = position; });
       }
+      
       _findCityByBoundingBox(position.latitude, position.longitude);
       final weather = await ApiService.fetchWeatherByCoords(lat: position.latitude, lon: position.longitude);
       print('DEBUG: Weather API response: $weather');
